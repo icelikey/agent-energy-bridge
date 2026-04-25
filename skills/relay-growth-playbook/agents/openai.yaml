@@ -1,0 +1,4 @@
+interface:
+  display_name: "Relay Growth Playbook"
+  short_description: "Packaging, docs, reseller kits, and content assets for AI relay sales."
+  default_prompt: "Turn the current relay station capabilities into product tiers, onboarding docs, reseller materials, and sellable content assets."

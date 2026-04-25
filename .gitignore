@@ -1,0 +1,14 @@
+﻿node_modules/
+coverage/
+dist/
+.env
+.env.*
+!.env.example
+*.log
+
+docs/deployments/
+docs/reseller-pack/
+docs/private-*.md
+
+tmp-cdp.ps1
+_write_test.txt

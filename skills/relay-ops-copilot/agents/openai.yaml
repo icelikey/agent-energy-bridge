@@ -1,0 +1,4 @@
+interface:
+  display_name: "Relay Ops Copilot"
+  short_description: "Health checks, route diagnostics, reports, and safe repair guidance."
+  default_prompt: "Check the relay gateway health, routes, logs, and upstream availability. Summarize anomalies, risks, and safe repair suggestions."

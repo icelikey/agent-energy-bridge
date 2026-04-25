@@ -1,0 +1,19 @@
+﻿{
+  "name": "agent-energy-bridge",
+  "version": "0.1.0",
+  "description": "Generic energy bridge for AI gateways with budget guard, refuel orchestration and model selection.",
+  "type": "commonjs",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node --test",
+    "smoke": "node -e \"const bridge=require('./src'); console.log(Object.keys(bridge).join(', '));\""
+  },
+  "keywords": [
+    "ai-gateway",
+    "llm",
+    "budget-guard",
+    "token-refuel",
+    "skill"
+  ],
+  "license": "MIT"
+}
