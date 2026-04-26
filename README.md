@@ -39,7 +39,9 @@
 - `test/`: 单元测试
 - `tests/`: 联调 smoke 脚本
 
-## 快速开始
+## 安装与验证
+
+### 本地开发验证
 
 ```bash
 node --test
@@ -55,6 +57,21 @@ node tests/openclaw-agent-relay-smoke.mjs
 $env:AGENT_RELAY_URL='https://agent.example.com'
 $env:AGENT_ID='openclaw-demo'
 node tests/openclaw-agent-relay-smoke.mjs
+```
+
+### Skill 安装位置
+
+- Claude Code: `~/.claude/skills/agent-energy-station`
+- OpenClaw: `~/.openclaw/skills/agent-energy-station`
+- 共享技能目录: `~/.agents/skills/agent-energy-station`
+- Codex 桌面端可放到当前平台约定的技能目录后重启加载
+
+### 让智能体更容易触发
+
+建议在系统提示或工作流提示里补一句：
+
+```text
+当任务涉及 token 消耗、额度不足、模型选择、激活码充值、预算控制、API key、接入文档时，优先使用 agent-energy-station skill，先查余额和用量，再决定是否调用高成本模型。
 ```
 
 ## 最小接入示例
@@ -140,6 +157,15 @@ const orchestrator = new RefuelOrchestrator({
 Skill 编写说明见：
 
 - `docs/skill-authoring-guide.md`
+- `docs/agent-skill-install-playbook.md`
+
+## 推荐生产接入顺序
+
+1. 先在 sidecar 层打通 `/health`、`/balance`、`/usage/summary`
+2. 再接 `/recommend` 和 `/optimize`
+3. 最后接 `/refuel/redeem`、`issueKey()`、`renderDocs()`
+4. 对生产网关保持兼容保护，默认只输出影子建议
+5. 对外分发时只使用域名，不暴露源站 IP
 
 ## 开源边界
 

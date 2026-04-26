@@ -15,6 +15,8 @@
 ```text
 your-skill/
 ├─ SKILL.md
+├─ agents/
+│  └─ openai.yaml
 ├─ references/
 │  └─ api.md
 └─ scripts/
@@ -65,6 +67,15 @@ node scripts/smoke.mjs
 - API 说明见 `references/api.md`
 ```
 
+## `agents/openai.yaml` 最小模板
+
+```yaml
+interface:
+  display_name: "Agent Energy Station"
+  short_description: "Budget checks, route recommendations, refuel guidance, and access docs for agent-first API relays."
+  default_prompt: "Check balance, usage, route recommendations, and budget safety before using expensive models."
+```
+
 ## `references/api.md` 建议写法
 
 只写 Agent 真正会用到的接口，不写大而全废话。建议保留：
@@ -98,7 +109,7 @@ node scripts/smoke.mjs
 - activation code
 - access docs
 
-## 给 OpenClaw / Claude Code 的建议
+## 给 OpenClaw / Claude Code / Codex 的建议
 
 如果你想让智能体更稳定地使用 skill，可以在系统提示里加入这一类约束：
 

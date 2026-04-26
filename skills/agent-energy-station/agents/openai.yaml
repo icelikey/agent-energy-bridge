@@ -1,0 +1,4 @@
+﻿interface:
+  display_name: "Agent Energy Station"
+  short_description: "Budget checks, route recommendations, refuel guidance, and access docs for agent-first API relays."
+  default_prompt: "Check balance, usage, route recommendations, and budget safety before using expensive models."
