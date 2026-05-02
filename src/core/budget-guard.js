@@ -7,7 +7,9 @@
   expensiveModelAllowlist: [],
   expensiveModelPriceThresholdUsdPer1k: 0.02,
   fallbackModel: null,
+  freeFallbackModel: null,
   autoPurchaseEnabled: false,
+  enableFreeFallback: true,
 });
 
 function round(value) {
@@ -33,13 +35,21 @@ class BudgetGuard {
     const estimatedCostUsd = Number(input.estimatedCostUsd ?? 0);
     const dailySpentUsd = Number(input.dailySpentUsd ?? 0);
     const hourlyTokensUsed = Number(input.hourlyTokensUsed ?? 0);
+    const availableUsd = Number(input.availableUsd ?? 0);
     const modelPricePer1kUsd = Number(input.modelPricePer1kUsd ?? 0);
     const model = input.model ?? 'unknown-model';
     const fallbackModel = input.fallbackModel ?? this.policy.fallbackModel ?? null;
+    const freeFallbackModel = input.freeFallbackModel ?? this.policy.freeFallbackModel ?? null;
     const projectedSpendUsd = round(dailySpentUsd + estimatedCostUsd);
     const projectedHourlyTokens = round(hourlyTokensUsed + requestedTokens);
     const reasons = [];
     let action = 'allow';
+
+    // Zero balance or insufficient funds -> free fallback
+    if (availableUsd <= 0 && this.policy.enableFreeFallback && freeFallbackModel) {
+      reasons.push(`balance depleted: $${availableUsd} available, switching to free fallback`);
+      action = mergeAction(action, 'free_fallback');
+    }
 
     if (projectedHourlyTokens > this.policy.hourlyTokenLimit) {
       reasons.push(`hourly token limit exceeded: ${projectedHourlyTokens} > ${this.policy.hourlyTokenLimit}`);
@@ -65,8 +75,11 @@ class BudgetGuard {
       action,
       reasons,
       fallbackModel: action === 'downgrade' ? fallbackModel : null,
+      freeFallbackModel: action === 'free_fallback' ? freeFallbackModel : null,
       projectedSpendUsd,
       projectedHourlyTokens,
+      availableUsd,
+      estimatedCallsRemaining: modelPricePer1kUsd > 0 ? Math.floor(availableUsd / (modelPricePer1kUsd * requestedTokens / 1000)) : Infinity,
     };
   }
 

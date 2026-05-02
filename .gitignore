@@ -5,6 +5,7 @@ dist/
 .env.*
 !.env.example
 *.log
+.bridge.pid
 
 docs/deployments/
 docs/reseller-pack/

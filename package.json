@@ -4,9 +4,16 @@
   "description": "Generic energy bridge for AI gateways with budget guard, refuel orchestration and model selection.",
   "type": "commonjs",
   "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "bin": {
+    "aeb": "bin/aeb.js"
+  },
   "scripts": {
+    "start": "node scripts/start-server.js",
     "test": "node --test",
-    "smoke": "node -e \"const bridge=require('./src'); console.log(Object.keys(bridge).join(', '));\""
+    "smoke": "node tests/openclaw-agent-relay-smoke.mjs",
+    "smoke:local": "node scripts/start-server.js & sleep 1 && node tests/openclaw-agent-relay-smoke.mjs && kill %1",
+    "check": "node -e \"const bridge=require('./src'); console.log(Object.keys(bridge).join(', '));\""
   },
   "keywords": [
     "ai-gateway",

@@ -1,54 +1,161 @@
-﻿---
-name: agent-energy-station
-description: Use when OpenClaw, Harness, Claude Code, Codex, or any AI agent needs to test or use an agent-first API relay: query balance, inspect usage, request model recommendations, optimize token spend, redeem refuel codes, report session results, or decide whether to compress context before calling a model.
 ---
+name: agent-energy-station
+description: |
+  Use when any AI agent needs to manage LLM costs, check token budget, auto-refuel,
+  or fallback to free-tier models before making expensive API calls.
+  Critical for: cost transparency, zero-balance fallback, route health monitoring.
+---
+
 # Agent Energy Station
 
-## 何时使用
+## 核心使命
 
-当智能体需要连接“树生科技”或类似 Agent-first API 中转站时使用：
+帮助用户**清楚知道每一次调用的实际成本**，在余额不足时**自动降级到免费模型**或触发充值，在路由不可用时**自动切换备用线路**。
 
-- 查询自己的余额和用量
-- 获取当前可用模型/路由能力
-- 在调用模型前做预算判断
-- 根据任务类型获取模型推荐
-- 额度不足时使用兑换码加油
-- 根据返回建议压缩上下文或切换低成本路由
-- 任务结束后准备上报 token、成本和成功状态
+## 何时触发
+
+- 任何涉及 LLM API 调用前（Claude Code、Codex、OpenClaw、Harness 等）
+- 余额可能不足时
+- 需要知道"这次调用要花多少钱"
+- 需要知道"余额还能支撑多少次调用"
+- 线路异常、模型不可用时
+- 任务完成后上报 token 消耗
 
 ## 工作流程
 
-1. 读取 `AGENT_RELAY_URL`，未设置时默认使用 `http://127.0.0.1:3100`。
-2. 读取 `AGENT_ID`，没有则用当前 Agent 名称或 `local-agent-test`。
-3. 先请求 `/agent/v1/health`，确认平台可用。
-4. 请求 `/agent/v1/balance` 和 `/agent/v1/usage/summary`，确认当前续航状态。
-5. 任务开始前请求 `/agent/v1/recommend` 和 `/agent/v1/optimize`。
-6. 如果返回 `downgrade_or_refuel`，优先执行 `savingActions`，必要时请求用户提供兑换码。
-7. 对高成本任务，优先压缩上下文、复用摘要、减少重复工具输出，再考虑高质量路由。
+### 1. 调用前成本透明（必须）
 
-## 快速测试
+每次调用 LLM 前，运行：
 
-运行 bundled smoke 脚本：
-
-```powershell
-node scripts/agent_relay_smoke.mjs
+```bash
+node skills/agent-energy-station/scripts/energy-orchestrator.mjs check-cost --estimatedTokens 50000 --modelPricePer1k 0.02
 ```
 
-可通过环境变量覆盖：
+输出会告诉你：
+- 当前余额
+- 预计花费
+- 剩余可调用次数
+- 风险等级（safe / warning / critical）
 
-```powershell
-$env:AGENT_RELAY_URL='https://agent.example.com'
-$env:AGENT_ID='openclaw-lobster-test'
-node scripts/agent_relay_smoke.mjs
+### 2. 智能模型推荐（含免费兜底）
+
+```bash
+node skills/agent-energy-station/scripts/energy-orchestrator.mjs recommend --taskType coding --protocol openai
 ```
+
+返回三层推荐：
+- **主选**：当前预算下最优模型
+- **降级**：余额紧张时的 cheaper 替代
+- **免费兜底**：余额为 0 时的免费模型（Gemini Flash、OpenRouter Free、Groq Llama、Local Ollama）
+
+### 3. 智能调用决策（一键判断）
+
+```bash
+node skills/agent-energy-station/scripts/energy-orchestrator.mjs smart-call --estimatedTokens 50000 --taskType coding
+```
+
+自动执行：
+1. 查询余额
+2. 评估成本
+3. 如果余额充足 → 推荐主选模型
+4. 如果余额不足 → 尝试自动充值
+5. 如果充值失败 → **自动推荐免费模型**
+6. 输出明确的执行建议
+
+### 4. 自动充值
+
+```bash
+node skills/agent-energy-station/scripts/energy-orchestrator.mjs auto-refuel --thresholdUsd 2
+```
+
+当余额低于阈值时，自动尝试兑换码充值。
+
+### 5. 路由健康检查
+
+```bash
+node skills/agent-energy-station/scripts/energy-orchestrator.mjs health
+```
+
+检查：
+- Bridge sidecar 是否健康
+- 模型路由是否可用
+- 余额查询是否正常
+
+如果检测到异常，建议切换到备用路由或免费模型。
+
+### 6. 任务完成后上报
+
+调用结束后，向 Bridge 上报实际消耗：
+
+```bash
+curl -X POST http://127.0.0.1:3100/agent/v1/session/report \
+  -H "Content-Type: application/json" \
+  -d '{
+    "taskType": "coding",
+    "inputTokens": 12000,
+    "outputTokens": 8000,
+    "costUsd": 0.45,
+    "model": "claude-4.6-mixed",
+    "success": true
+  }'
+```
+
+用于优化后续推荐和能量评分。
+
+## Agent 行为指令
+
+### 余额充足时（safe）
+- 正常执行，使用推荐的主选模型
+- 记录预估成本
+
+### 余额紧张时（warning）
+- **优先压缩上下文**（减少 token 数）
+- 如果压缩后仍紧张，切换到降级模型
+- 记录节省的成本
+
+### 余额耗尽时（critical）
+1. **立即停止**高成本调用
+2. 尝试自动充值（如果配置了兑换码）
+3. 如果充值失败 → **强制使用免费模型**
+4. 告知用户当前处于免费模式
+
+### 线路异常时（degraded）
+1. 检查路由健康状态
+2. 如果主路由不可用 → 切换到 healthy 的 fallback 路由
+3. 如果所有付费路由都不可用 → 切换到免费模型
+4. 记录异常事件
+
+## 环境变量
+
+```bash
+# Bridge sidecar 地址（必须）
+export AGENT_RELAY_URL="http://127.0.0.1:3100"
+
+# 当前 Agent 标识
+export AGENT_ID="claude-code-main"
+```
+
+## 免费模型兜底机制
+
+当余额为 0 时，系统会自动推荐以下免费模型之一：
+
+| 模型 | 提供商 | 免费额度 | 能力 |
+|------|--------|---------|------|
+| Gemini 2.5 Flash | Google | 1,500 RPM | 聊天、推理、编码、视觉 |
+| OpenRouter Free | OpenRouter | 20 RPM | 聊天、推理 |
+| Groq Llama 3 | Groq | 20 RPM | 聊天、编码、推理 |
+| Local Ollama | 本地 | 无限制 | 聊天、编码 |
+
+Agent 应优先使用与原任务能力匹配的免费模型。
 
 ## 输出要求
 
-- 不暴露服务器源站 IP 给终端用户；对外正式文档优先使用域名。
-- 公共仓库与公共文档里只使用域名或占位地址。
-- 如果平台返回节流建议，先执行节流建议再继续高成本模型调用。
-- 如果只是测试，不要修改 OpenClaw 主模型配置。
+- 不要在公共对话中暴露 API Key 或服务器 IP
+- 成本显示保留 4 位小数（如 $0.0234）
+- 免费模型调用标注 `[FREE]`
+- 充值操作需要用户确认（除非配置了自动充值）
 
 ## 参考文件
 
-- API 约定见 `references/agent-relay-api.md`
+- API 契约见 `references/agent-relay-api.md`
+- 详细部署指南见 `docs/agent-skill-install-playbook.md`

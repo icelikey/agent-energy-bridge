@@ -81,9 +81,59 @@ const MODEL_CATALOG = Object.freeze([
     protocols: ['minimax', 'openai'],
     capabilities: ['chat', 'reasoning', 'multimodal'],
   },
+  // Free-tier models for zero-balance fallback
+  {
+    id: 'gemini-2.5-flash-free',
+    label: 'Gemini 2.5 Flash (Free)',
+    provider: 'google',
+    budgetTier: 'free',
+    qualityTier: 'balanced',
+    pricePer1kUsd: 0,
+    isFree: true,
+    protocols: ['google', 'openai'],
+    capabilities: ['chat', 'reasoning', 'coding', 'vision'],
+    freeLimit: '1,500 RPM, 1M tokens/min',
+  },
+  {
+    id: 'openrouter-free',
+    label: 'OpenRouter Free Tier',
+    provider: 'openrouter',
+    budgetTier: 'free',
+    qualityTier: 'economy',
+    pricePer1kUsd: 0,
+    isFree: true,
+    protocols: ['openai'],
+    capabilities: ['chat', 'reasoning'],
+    freeLimit: '20 RPM, 200 RPD',
+  },
+  {
+    id: 'groq-llama-free',
+    label: 'Groq Llama 3 (Free)',
+    provider: 'groq',
+    budgetTier: 'free',
+    qualityTier: 'balanced',
+    pricePer1kUsd: 0,
+    isFree: true,
+    protocols: ['openai'],
+    capabilities: ['chat', 'coding', 'reasoning'],
+    freeLimit: '20 RPM, 6M tokens/min',
+  },
+  {
+    id: 'local-ollama',
+    label: 'Local Ollama',
+    provider: 'local',
+    budgetTier: 'free',
+    qualityTier: 'economy',
+    pricePer1kUsd: 0,
+    isFree: true,
+    protocols: ['openai'],
+    capabilities: ['chat', 'coding'],
+    freeLimit: 'unlimited (local compute)',
+  },
 ]);
 
 const BUDGET_RANK = Object.freeze({
+  free: 0,
   economy: 1,
   balanced: 2,
   premium: 3,
@@ -95,6 +145,7 @@ function round(value) {
 
 function normalizeBudgetTier(value) {
   const map = {
+    free: 'free',
     low: 'economy',
     economy: 'economy',
     mixed: 'economy',
@@ -138,6 +189,7 @@ class ModelSelector {
     const requiredCapabilities = [...new Set([input.taskType, ...(input.requiredCapabilities || [])].filter(Boolean))];
     const protocol = input.protocol ?? null;
     const needsUniversalProtocol = Boolean(input.needsUniversalProtocol);
+    const preferFree = Boolean(input.preferFree) || budgetTier === 'free';
 
     const ranked = this.catalog
       .filter((model) => !protocol || model.protocols.includes(protocol) || model.id === 'all-protocol-router')
@@ -159,6 +211,7 @@ class ModelSelector {
           protocol,
           needsUniversalProtocol,
           qualityPriority: input.qualityPriority,
+          preferFree,
         });
         const score = round(baseScore * 0.42 + capabilityAssessment.weightedScore / 100 * 0.58);
 
@@ -172,13 +225,24 @@ class ModelSelector {
       .sort((left, right) => right.score - left.score);
 
     const primary = ranked[0] || null;
-    const fallback =
-      ranked.find(
-        (model) =>
-          primary &&
-          model.id !== primary.id &&
-          (model.budgetTier === 'economy' || model.pricePer1kUsd < primary.pricePer1kUsd),
-      ) || null;
+
+    // Fallback selection logic
+    let fallback = null;
+    if (primary) {
+      // When in free mode, fallback is any other free model with different capabilities
+      if (preferFree || budgetTier === 'free') {
+        fallback = ranked.find(
+          (model) => model.id !== primary.id && model.isFree,
+        ) || null;
+      } else {
+        // Normal fallback: cheaper or economy tier
+        fallback = ranked.find(
+          (model) =>
+            model.id !== primary.id &&
+            (model.budgetTier === 'economy' || model.pricePer1kUsd < primary.pricePer1kUsd),
+        ) || null;
+      }
+    }
 
     return {
       primary,
@@ -218,6 +282,7 @@ class ModelSelector {
 
   scoreCandidate(model, input) {
     const requiredCapabilities = input.requiredCapabilities || [];
+    const preferFree = Boolean(input.preferFree);
     const budgetDistance = Math.abs(BUDGET_RANK[model.budgetTier] - BUDGET_RANK[input.budgetTier]);
     const matchedCapabilities = requiredCapabilities.filter((capability) => model.capabilities.includes(capability)).length;
     const capabilityScore = requiredCapabilities.length ? matchedCapabilities / requiredCapabilities.length : 0.7;
@@ -225,15 +290,26 @@ class ModelSelector {
     const protocolScore = !input.protocol || model.protocols.includes(input.protocol) ? 1 : model.id === 'all-protocol-router' ? 0.94 : 0.2;
     const universalScore = input.needsUniversalProtocol && model.id === 'all-protocol-router' ? 1 : input.needsUniversalProtocol ? 0.55 : 0.65;
     const qualityScore = this.scoreQualityFit(model, input.qualityPriority);
-    const priceScore = model.pricePer1kUsd <= 0.01 ? 1 : model.pricePer1kUsd <= 0.02 ? 0.82 : model.pricePer1kUsd <= 0.04 ? 0.52 : 0.28;
+
+    // Price scoring: free models get max score when preferFree is set
+    let priceScore;
+    if (model.isFree) {
+      priceScore = preferFree ? 1.5 : 1; // Boost free models when in free mode
+    } else {
+      priceScore = model.pricePer1kUsd <= 0.01 ? 1 : model.pricePer1kUsd <= 0.02 ? 0.82 : model.pricePer1kUsd <= 0.04 ? 0.52 : 0.28;
+    }
+
+    // When preferFree, heavily penalize non-free models
+    const freePenalty = preferFree && !model.isFree ? 0.3 : 1;
 
     return round(
-      capabilityScore * 0.32 +
+      (capabilityScore * 0.32 +
         budgetScore * 0.16 +
         protocolScore * 0.14 +
         universalScore * 0.08 +
         qualityScore * 0.18 +
-        priceScore * 0.12,
+        priceScore * 0.12) *
+        freePenalty,
     );
   }
 

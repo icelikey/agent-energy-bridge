@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  agent-energy-bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agent-energy-bridge
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    environment:
+      # NewAPI 配置（根据你的实际环境修改）
+      - NEWAPI_BASE_URL=${NEWAPI_BASE_URL:-http://host.docker.internal:3000}
+      - NEWAPI_API_KEY=${NEWAPI_API_KEY}
+      - NEWAPI_USER_ID=${NEWAPI_USER_ID}
+      - NEWAPI_USERNAME=${NEWAPI_USERNAME}
+      - NEWAPI_PASSWORD=${NEWAPI_PASSWORD}
+      - NEWAPI_QUOTA_PER_UNIT=${NEWAPI_QUOTA_PER_UNIT}
+
+      # 自动充值配置
+      - AUTO_REFUEL_ENABLED=${AUTO_REFUEL_ENABLED:-true}
+      - AUTO_REFUEL_THRESHOLD_USD=${AUTO_REFUEL_THRESHOLD_USD:-3}
+      - AUTO_REFUEL_AMOUNT_USD=${AUTO_REFUEL_AMOUNT_USD:-10}
+      - AUTO_REFUEL_STRATEGY=${AUTO_REFUEL_STRATEGY:-fixed}
+      - AUTO_REFUEL_CODES=${AUTO_REFUEL_CODES}
+
+      # 运营监控
+      - OPS_MONITOR_INTERVAL_MS=${OPS_MONITOR_INTERVAL_MS:-300000}
+
+      # 路由健康检查
+      - HEALTH_CHECK_ROUTES=${HEALTH_CHECK_ROUTES}
+      - HEALTH_CHECK_INTERVAL_MS=${HEALTH_CHECK_INTERVAL_MS:-60000}
+
+      # 日志
+      - AEB_LOG_LEVEL=${AEB_LOG_LEVEL:-info}
+      - AEB_PORT=3100
+      - AEB_HOST=0.0.0.0
+
+    # 如果你希望和 new-api 在同一台机器上运行，使用 host 网络模式
+    # network_mode: host
+
+    # 或者连接到 new-api 所在的 Docker 网络
+    # networks:
+    #   - newapi-network
+
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3100/agent/v1/health').then(r=>r.ok?process.exit(0):process.exit(1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+# networks:
+#   newapi-network:
+#     external: true

@@ -1,4 +1,6 @@
 ﻿const { CompatibilityGuard } = require('../core/compatibility-guard');
+const { EnergyEngine } = require('../core/energy-engine');
+const { SessionStore } = require('../core/session-store');
 
 class RefuelOrchestrator {
   constructor(options = {}) {
@@ -6,6 +8,8 @@ class RefuelOrchestrator {
     this.budgetGuard = options.budgetGuard;
     this.modelSelector = options.modelSelector;
     this.compatibilityGuard = options.compatibilityGuard ?? new CompatibilityGuard();
+    this.energyEngine = options.energyEngine ?? null;
+    this.sessionStore = options.sessionStore ?? null;
     this.lowBalanceThresholdUsd = Number(options.lowBalanceThresholdUsd ?? 5);
     this.defaultIssuePlan = options.defaultIssuePlan ?? 'starter';
     this.defaultDocsTemplate = options.defaultDocsTemplate ?? 'quickstart';
@@ -53,6 +57,8 @@ class RefuelOrchestrator {
       routingPlan,
     });
 
+    const energyInsights = this.buildEnergyInsights(context);
+
     return {
       status: guardDecision.allowed ? 'ready' : 'blocked',
       selectedModel,
@@ -62,7 +68,89 @@ class RefuelOrchestrator {
       usage,
       balance,
       refuel,
+      energyInsights,
     };
+  }
+
+  buildEnergyInsights(context) {
+    if (!this.energyEngine || !this.sessionStore) {
+      return null;
+    }
+
+    const recent = this.sessionStore.getRecentSessions(50);
+    if (!recent.length) {
+      return { trend: 'insufficient_data', suggestions: ['collect more sessions before making routing changes'] };
+    }
+
+    const summary = this.energyEngine.summarizeSession(recent);
+    const taskType = context.taskType;
+    const taskSpecific = taskType ? this.sessionStore.getSessionsByTaskType(taskType, 30) : [];
+    const taskSummary = taskSpecific.length > 2 ? this.energyEngine.summarizeSession(taskSpecific) : null;
+
+    return {
+      overall: summary,
+      byTask: taskSummary,
+      recommendations: this.mergeEnergyRecommendations(summary, taskSummary, context),
+    };
+  }
+
+  mergeEnergyRecommendations(overall, byTask, context) {
+    const recommendations = [];
+
+    if (overall.trend === 'down') {
+      recommendations.push('energy efficiency is trending down; consider tightening routing and budget policies');
+    }
+
+    if (overall.avgEnergyScore < 65) {
+      recommendations.push('overall energy score is low; prefer economy or balanced routing for low-risk tasks');
+    }
+
+    if (byTask && byTask.avgEnergyScore < 60) {
+      recommendations.push(`energy score for "${context.taskType}" tasks is low; consider switching models or compressing context`);
+    }
+
+    if (overall.avgSuccessScore < 0.85) {
+      recommendations.push('success rate is below threshold; raise model quality tier for failure-prone workflows');
+    }
+
+    if (!recommendations.length) {
+      recommendations.push('energy profile looks healthy; keep monitoring daily usage and failures');
+    }
+
+    return recommendations;
+  }
+
+  reportSession(session) {
+    if (!this.energyEngine) {
+      throw new Error('energyEngine is required for session reporting');
+    }
+
+    const scored = this.energyEngine.scoreSession(session);
+
+    if (this.sessionStore) {
+      this.sessionStore.addSession(scored);
+    }
+
+    return scored;
+  }
+
+  getSessionSummary(filters = {}) {
+    if (!this.energyEngine) {
+      throw new Error('energyEngine is required for session summarization');
+    }
+
+    let sessions = [];
+    if (this.sessionStore) {
+      if (filters.taskType) {
+        sessions = this.sessionStore.getSessionsByTaskType(filters.taskType, filters.limit ?? 100);
+      } else if (filters.model) {
+        sessions = this.sessionStore.getSessionsByModel(filters.model, filters.limit ?? 100);
+      } else {
+        sessions = this.sessionStore.getRecentSessions(filters.limit ?? 100);
+      }
+    }
+
+    return this.energyEngine.summarizeSession(sessions);
   }
 
   async handleLowBalance({ context, identity, usage, balance, routingPlan }) {
