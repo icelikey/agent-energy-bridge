@@ -36,8 +36,8 @@ function createAdapter() {
       autoRefuelEnabled: process.env.AUTO_REFUEL_ENABLED !== 'false',
       maxRefuelsPerHour: Number(process.env.AUTO_REFUEL_MAX_PER_HOUR || 3),
       cooldownMs: Number(process.env.AUTO_REFUEL_COOLDOWN_MS || 60000),
-      refuelCodes: process.env.AUTO_REFUEL_CODES
-        ? process.env.AUTO_REFUEL_CODES.split(',')
+      refuelCodes: process.env.AUTO_REFUEL_CODES !== undefined
+        ? process.env.AUTO_REFUEL_CODES.split(',').filter(Boolean)
         : [],
       onRefuel: (event) => {
         console.log('[AutoRefuel]', `+$${event.amount} refueled. Balance was $${event.availableUsd}`);
@@ -69,8 +69,8 @@ function createAdapter() {
     autoRefuelEnabled: process.env.AUTO_REFUEL_ENABLED !== 'false',
     maxRefuelsPerHour: Number(process.env.AUTO_REFUEL_MAX_PER_HOUR || 3),
     cooldownMs: Number(process.env.AUTO_REFUEL_COOLDOWN_MS || 60000),
-    refuelCodes: process.env.AUTO_REFUEL_CODES
-      ? process.env.AUTO_REFUEL_CODES.split(',')
+    refuelCodes: process.env.AUTO_REFUEL_CODES !== undefined
+      ? process.env.AUTO_REFUEL_CODES.split(',').filter(Boolean)
       : ['DEMO-2026'],
     onRefuel: (event) => {
       console.log('[AutoRefuel]', `+$${event.amount} refueled. Balance was $${event.availableUsd}`);
@@ -94,6 +94,7 @@ const budgetGuard = new BudgetGuard({
   maxRefuelAmountUsd: 8,
   maxAutoPurchasedUsdPerDay: 16,
   fallbackModel: 'all-protocol-router',
+  freeFallbackModel: 'gemini-2.5-flash-free',
 });
 
 const modelSelector = new ModelSelector();

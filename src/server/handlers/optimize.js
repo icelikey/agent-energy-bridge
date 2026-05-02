@@ -8,6 +8,16 @@ async function postOptimize(request, response, context) {
     throw error;
   }
 
+  let availableUsd = body.availableUsd ?? 0;
+  if (context.adapter && typeof context.adapter.getBalance === 'function') {
+    try {
+      const balance = await context.adapter.getBalance({ client: body.client });
+      availableUsd = Number(balance?.availableUsd ?? balance?.balanceUsd ?? availableUsd);
+    } catch {
+      // keep fallback from body or 0
+    }
+  }
+
   const recommendation = context.modelSelector.recommend({
     taskType: body.taskType,
     requiredCapabilities: body.requiredCapabilities,
@@ -26,11 +36,15 @@ async function postOptimize(request, response, context) {
     requestedTokens: body.requestedTokens ?? 0,
     dailySpentUsd: body.dailySpentUsd ?? 0,
     hourlyTokensUsed: body.hourlyTokensUsed ?? 0,
+    availableUsd,
     modelPricePer1kUsd: selectedModelMeta.pricePer1kUsd ?? 0,
     fallbackModel: recommendation.fallback?.id ?? context.budgetGuard.snapshot().fallbackModel,
   });
 
-  const action = guardDecision.allowed ? 'proceed' : 'downgrade_or_refuel';
+  let action = guardDecision.allowed ? 'proceed' : 'downgrade_or_refuel';
+  if (guardDecision.action === 'free_fallback') {
+    action = 'free_fallback';
+  }
   const savingActions = [];
 
   if (!guardDecision.allowed && body.requestedTokens > 40000) {

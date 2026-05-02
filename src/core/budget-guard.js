@@ -17,7 +17,7 @@ function round(value) {
 }
 
 function mergeAction(currentAction, nextAction) {
-  const priorities = { allow: 0, downgrade: 1, block: 2 };
+  const priorities = { allow: 0, downgrade: 1, free_fallback: 1, block: 2 };
   return priorities[nextAction] > priorities[currentAction] ? nextAction : currentAction;
 }
 
