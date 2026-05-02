@@ -54,12 +54,34 @@ function createAdapter() {
   }
 
   console.log('Memory adapter mode (demo). Set NEWAPI_BASE_URL to connect to real new-api.');
-  return new MemoryAdapter({
+  const memoryAdapter = new MemoryAdapter({
     balanceUsd: Number(process.env.DEMO_BALANCE_USD || 5),
     dailySpentUsd: Number(process.env.DEMO_DAILY_SPENT_USD || 2),
     hourlyTokensUsed: Number(process.env.DEMO_HOURLY_TOKENS || 12000),
     codes: { 'DEMO-2026': 10, 'OPENCLAW-TEST-10': 10 },
   });
+
+  // Demo mode also supports auto-refuel for testing
+  const demoAutoRefuel = new AutoRefuelDecorator(memoryAdapter, {
+    lowBalanceThresholdUsd: Number(process.env.AUTO_REFUEL_THRESHOLD_USD || 3),
+    refuelAmountUsd: Number(process.env.AUTO_REFUEL_AMOUNT_USD || 10),
+    refuelStrategy: process.env.AUTO_REFUEL_STRATEGY || 'fixed',
+    autoRefuelEnabled: process.env.AUTO_REFUEL_ENABLED !== 'false',
+    maxRefuelsPerHour: Number(process.env.AUTO_REFUEL_MAX_PER_HOUR || 3),
+    cooldownMs: Number(process.env.AUTO_REFUEL_COOLDOWN_MS || 60000),
+    refuelCodes: process.env.AUTO_REFUEL_CODES
+      ? process.env.AUTO_REFUEL_CODES.split(',')
+      : ['DEMO-2026'],
+    onRefuel: (event) => {
+      console.log('[AutoRefuel]', `+$${event.amount} refueled. Balance was $${event.availableUsd}`);
+    },
+    onAlert: (alert) => {
+      console.log('[AutoRefuel Alert]', alert.type, alert.message || '');
+    },
+  });
+
+  console.log(`Auto-refuel: ${demoAutoRefuel.autoRefuelEnabled ? 'ON' : 'OFF'} (threshold $${demoAutoRefuel.lowBalanceThresholdUsd})`);
+  return demoAutoRefuel;
 }
 
 const adapter = createAdapter();
