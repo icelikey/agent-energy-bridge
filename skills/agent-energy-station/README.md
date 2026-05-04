@@ -1,52 +1,48 @@
 # Agent Energy Station — Skill 使用指南
 
 > 一键管理 LLM 调用成本、自动充值、免费模型兜底、路由健康检查
+>
+> **安装后自动同步余额到 Agent 交互界面，无需任何手动配置！**
 
 ---
 
-## 快速开始（3 步）
-
-### 1. 安装 Skill
+## 零配置快速开始（1 步）
 
 ```bash
-# 方式 A：自动安装（推荐）
 node install.mjs
+```
 
-# 方式 B：手动复制
-# 将整个 agent-energy-station 文件夹复制到你的 Agent skill 目录：
+安装器会自动完成：
+1. ✅ 安装 skill 文件到 Claude Code / OpenClaw
+2. ✅ 自动配置 `~/.claude/settings.json`（hook + 环境变量）
+3. ✅ 自动检测/获取/启动 Bridge 服务端
+4. ✅ 验证一切正常
+
+**无需手动编辑任何配置文件！**
+
+---
+
+## 手动安装（如果自动安装失败）
+
+```bash
+# 将整个 agent-energy-station 文件夹复制到 Agent skill 目录：
 #   Claude Code: ~/.claude/skills/agent-energy-station
 #   OpenClaw:    ~/.openclaw/skills/agent-energy-station
 #   Codex:       ~/.codex/skills/agent-energy-station
-```
 
-### 2. 启动 Bridge 服务端
-
-```bash
-# 演示模式（零配置，余额 $5，立即体验）
-node start-bridge.mjs
-
-# 真实 NewAPI 模式（连接你的中转站）
-node start-bridge.mjs --newapi
-```
-
-### 3. 运行 Skill
-
-```bash
-# 健康检查
-node scripts/energy-orchestrator.mjs health
-
-# 智能调用（一键判断余额 + 推荐模型）
-node scripts/energy-orchestrator.mjs smart-call --estimatedTokens 10000
+# 然后手动启动 Bridge
+node start-bridge.mjs           # 演示模式（零配置）
+node start-bridge.mjs --newapi  # 真实 NewAPI 模式
 ```
 
 ---
 
-## 两种使用模式
+## 使用模式
 
-| 模式 | 命令 | 配置 | 用途 |
-|------|------|------|------|
-| **演示模式** | `node start-bridge.mjs` | 无需配置 | 开箱即用，体验全部功能 |
-| **真实 NewAPI** | `node start-bridge.mjs --newapi` | 需配置 `.env` | 连接你的 new-api 中转站 |
+| 模式 | 说明 | 配置 |
+|------|------|------|
+| **演示模式** | 余额 $5（虚拟），开箱即用 | 无需配置 |
+| **真实 NewAPI** | 连接你的 new-api 中转站 | 创建 `.env` 文件 |
 
 ### 演示模式
 
@@ -66,21 +62,33 @@ node scripts/energy-orchestrator.mjs smart-call --estimatedTokens 10000
 ## Skill 命令
 
 ```bash
-# 1. 健康检查 — 检查 Bridge 和路由状态
+# 健康检查 — 检查 Bridge 和路由状态
 node scripts/energy-orchestrator.mjs health
 
-# 2. 成本透明 — 查看余额、预计成本、剩余次数
-node scripts/energy-orchestrator.mjs check-cost --estimatedTokens 50000 --modelPricePer1k 0.02
+# 成本透明 — 查看余额、预计成本、剩余次数
+node scripts/energy-orchestrator.mjs check-cost --estimatedTokens 50000
 
-# 3. 模型推荐 — 获取主选/降级/免费兜底三层推荐
-node scripts/energy-orchestrator.mjs recommend --taskType coding --budgetTier balanced
+# 模型推荐 — 获取主选/降级/免费兜底三层推荐
+node scripts/energy-orchestrator.mjs recommend --taskType coding
 
-# 4. 自动充值 — 低余额时尝试兑换码充值
-node scripts/energy-orchestrator.mjs auto-refuel --thresholdUsd 2
+# 自动充值 — 低余额时尝试兑换码充值
+node scripts/energy-orchestrator.mjs auto-refuel
 
-# 5. 智能调用 — 完整闭环：检查成本 → 推荐模型 → 判断执行
-node scripts/energy-orchestrator.mjs smart-call --taskType coding --estimatedTokens 10000
+# 智能调用 — 完整闭环：检查成本 → 推荐模型 → 判断执行
+node scripts/energy-orchestrator.mjs smart-call --estimatedTokens 10000
 ```
+
+---
+
+## Agent 交互界面自动同步
+
+安装后，Agent 会自动：
+
+- **每次输入长文本时**，自动检查余额并在界面上显示警告
+- **余额耗尽时**，自动推荐免费模型（gemini-2.5-flash-free）
+- **余额紧张时**，建议压缩上下文或切换 cheaper 模型
+
+无需手动运行任何命令！
 
 ---
 
@@ -89,7 +97,9 @@ node scripts/energy-orchestrator.mjs smart-call --taskType coding --estimatedTok
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
 | `AGENT_RELAY_URL` | `http://127.0.0.1:3100` | Bridge 地址 |
-| `AGENT_ID` | `agent-energy-station` | Agent 标识 |
+| `AGENT_ID` | `claude-code-main` | Agent 标识 |
+
+这些变量由 install.mjs 自动配置，通常无需手动修改。
 
 ---
 
@@ -108,9 +118,11 @@ node scripts/energy-orchestrator.mjs smart-call --taskType coding --estimatedTok
 
 ## 常见问题
 
-**Q: 提示 "Bridge 服务端未运行"**
+**Q: 安装后 Agent 没有自动同步余额？**
 
-先运行 `node start-bridge.mjs` 启动服务端。
+1. 确认 Bridge 已启动：`curl http://127.0.0.1:3100/agent/v1/health`
+2. 重启 Claude Code（settings.json 修改后需要重启才能生效）
+3. 输入较长文本（> 50 字符）触发 hook 检查
 
 **Q: 如何连接自己的 new-api 中转站？**
 
@@ -123,11 +135,9 @@ node scripts/energy-orchestrator.mjs smart-call --taskType coding --estimatedTok
 
 需要在 new-api 管理后台预先创建兑换码，然后填入 `AUTO_REFUEL_CODES` 环境变量。
 
-**Q: Skill 没触发怎么办？**
+**Q: 安装器提示 "无法获取 Bridge 服务端代码"？**
 
-- 确认 skill 目录位置正确
-- 重启 Agent 客户端
-- 在提示中明确提到"余额"、"预算"、"模型选择"等关键词
+请确保已安装 git，或手动克隆项目：`git clone https://github.com/icelikey/agent-energy-bridge.git`
 
 ---
 
@@ -138,9 +148,10 @@ agent-energy-station/
 ├── SKILL.md                    # Skill 元数据（Agent 识别用）
 ├── README.md                   # 本文件
 ├── start-bridge.mjs            # 一键启动 Bridge 服务端
-├── install.mjs                 # 一键安装到 Agent skill 目录
+├── install.mjs                 # 智能一键安装器（自动配置一切）
 ├── scripts/
 │   ├── energy-orchestrator.mjs # 主 Skill 脚本
+│   ├── claude-energy-guard.mjs # Claude Code Hook 脚本（余额自动检查）
 │   └── agent_relay_smoke.mjs   # 测试脚本
 ├── references/
 │   └── agent-relay-api.md      # API 契约文档

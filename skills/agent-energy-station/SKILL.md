@@ -1,6 +1,6 @@
 ---
 name: agent-energy-station
-description: Use when OpenClaw, Harness, Claude Code, Codex, or any AI agent needs to test or use the Agent Energy Bridge: query balance, inspect usage, request model recommendations, optimize token spend, redeem refuel codes, report session results, or decide whether to compress context before calling a model. Includes automatic free-tier fallback when balance is depleted.
+description: Use when OpenClaw, Harness, Claude Code, Codex, or any AI agent needs to test or use the Agent Energy Bridge: query balance, inspect usage, request model recommendations, optimize token spend, redeem refuel codes, report session results, or decide whether to compress context before calling a model. Includes automatic free-tier fallback when balance is depleted. After installation via `node install.mjs`, energy balance is automatically synced to the agent interface on every prompt — no manual configuration required.
 ---
 
 # Agent Energy Station
@@ -18,9 +18,20 @@ description: Use when OpenClaw, Harness, Claude Code, Codex, or any AI agent nee
 - 任务结束后准备上报 token、成本和成功状态
 - **余额耗尽时自动降级到免费模型**
 
-## 工作流程
+> **注意**：安装后余额自动同步到 Agent 界面。如果未安装或同步异常，可使用以下手动命令。
 
-### 1. 快速状态检查（推荐每次调用前）
+## 快速开始（已自动配置）
+
+运行 `node install.mjs` 后，以下全部自动完成：
+
+1. Skill 文件安装到 `~/.claude/skills/agent-energy-station`
+2. Claude Code `settings.json` 自动配置 hook + 环境变量
+3. Bridge 服务端自动检测/获取/启动
+4. 余额检查在每次输入时自动执行
+
+## 手动检查（当自动同步失效时）
+
+### 1. 快速状态检查
 
 ```powershell
 node scripts/openclaw-energy-sync.mjs status
@@ -95,6 +106,8 @@ $env:AGENT_RELAY_URL="http://127.0.0.1:3100"
 $env:AGENT_ID="openclaw-lobster-local-test"
 $env:OPENCLAW_DIR="$env:USERPROFILE\.openclaw"
 ```
+
+> 这些变量由 `install.mjs` 自动配置到 Claude Code `settings.json` 中。
 
 ## 自动同步（守护进程）
 
