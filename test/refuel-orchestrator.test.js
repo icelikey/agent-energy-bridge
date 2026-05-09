@@ -182,3 +182,59 @@ test('RefuelOrchestrator reuses an existing key when rendering docs', async () =
   assert.match(provisioned.docs.markdown, /legacy-premium-route/);
   assert.deepEqual(calls, []);
 });
+
+// ----------------------------------------------------------------
+// Phase 6: 免费模型降级 (FUEL-03)
+// ----------------------------------------------------------------
+
+test('prepareSession degrades to freeModel when balance is zero', async () => {
+  const { RefuelOrchestrator } = require('../src/service/refuel-orchestrator');
+  const { BudgetGuard } = require('../src/core/budget-guard');
+  const { ModelSelector } = require('../src/core/model-selector');
+
+  const adapter = {
+    getBalance: async () => ({ availableUsd: 0, balanceUsd: 0 }),
+    getUsage: async () => ({ dailySpentUsd: 0, hourlyTokensUsed: 0, autoRefuelsToday: 0, autoPurchasedUsdToday: 0 }),
+    redeemCode: async () => ({}),
+    issueKey: async () => ({ apiKey: 'test-key' }),
+    renderDocs: async () => '',
+  };
+  const budgetGuard = new BudgetGuard({});
+  const modelSelector = new ModelSelector({});
+  const orch = new RefuelOrchestrator({
+    adapter,
+    budgetGuard,
+    modelSelector,
+    freeModel: 'gemini-2.5-flash-free',
+  });
+
+  const result = await orch.prepareSession({});
+  assert.equal(result.degraded, true, 'should be degraded when balance is zero');
+  assert.equal(result.selectedModel, 'gemini-2.5-flash-free', 'should use freeModel');
+  assert.equal(result.status, 'ready', 'degraded session should be ready');
+});
+
+test('prepareSession does not degrade when balance is positive', async () => {
+  const { RefuelOrchestrator } = require('../src/service/refuel-orchestrator');
+  const { BudgetGuard } = require('../src/core/budget-guard');
+  const { ModelSelector } = require('../src/core/model-selector');
+
+  const adapter = {
+    getBalance: async () => ({ availableUsd: 10, balanceUsd: 10 }),
+    getUsage: async () => ({ dailySpentUsd: 0, hourlyTokensUsed: 0, autoRefuelsToday: 0, autoPurchasedUsdToday: 0 }),
+    redeemCode: async () => ({}),
+    issueKey: async () => ({ apiKey: 'test-key' }),
+    renderDocs: async () => '',
+  };
+  const budgetGuard = new BudgetGuard({});
+  const modelSelector = new ModelSelector({});
+  const orch = new RefuelOrchestrator({
+    adapter,
+    budgetGuard,
+    modelSelector,
+    freeModel: 'gemini-2.5-flash-free',
+  });
+
+  const result = await orch.prepareSession({});
+  assert.equal(result.degraded, false, 'should not be degraded when balance is positive');
+});
