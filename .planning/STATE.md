@@ -1,28 +1,28 @@
 # State: Agent Energy Bridge
 
 **Project:** Agent Energy Bridge (AEB)
-**Status:** Phase 5 Completed — Phase 6 Ready to Execute
-**Last Updated:** 2026-05-08
+**Status:** Phase 6 In Progress — PLAN-02 Complete
+**Last Updated:** 2026-05-09
 
 ---
 
 ## Current Phase
 
 **Phase 6: Auto-Refuel & Notifications**
-- Status: In Progress (1/4 plans complete)
+- Status: In Progress (2/4 plans complete)
 - Goal: 激活码兑换对接 NewAPI，低余额多渠道通知，余额耗尽免费模型兜底
 - Requirements: FUEL-01 ~ FUEL-05, NOTF-01 ~ NOTF-05
 - Key deliverables:
   - ✅ NotificationService 新增 wecom + email 渠道
   - ✅ quiet-hours 工具函数
-  - AutoRefuelDecorator 接入 NotificationService（fire-and-forget）
-  - quietHours 免打扰配置
+  - ✅ AutoRefuelDecorator 接入 NotificationService（fire-and-forget）
+  - ✅ quietHours 免打扰配置
   - RefuelOrchestrator 余额耗尽降级到免费模型
   - buildContext 注入 notificationService
   - 3 个新 HTTP 端点（/notify/config, /notify/test, /refuel/status）
 - Plans:
   - ✅ 06-PLAN-01 (Wave 1): NotificationService 扩展 + quiet-hours 工具
-  - 06-PLAN-02 (Wave 2): AutoRefuelDecorator 接入 NotificationService
+  - ✅ 06-PLAN-02 (Wave 2): AutoRefuelDecorator 接入 NotificationService
   - 06-PLAN-03 (Wave 2): RefuelOrchestrator 免费模型降级 + buildContext 注入
   - 06-PLAN-04 (Wave 3): HTTP 端点 + 测试覆盖
 
@@ -37,7 +37,7 @@
 | 3. Concurrency Safety | Completed | 4 | 4/4 |
 | 4. Token Metering | Completed | 5 | 5/5 |
 | 5. Multi-Provider Routing | Completed | 5 | 5/5 |
-| 6. Auto-Refuel Enhancement | In Progress | 10 | 3/10 |
+| 6. Auto-Refuel Enhancement | In Progress | 10 | 8/10 |
 | 7. Open Source Release | Pending | 6 | 0/6 |
 
 ---
@@ -56,6 +56,13 @@
 | session-store.test.js | 10 | Phase 2 |
 | model-selector-routing.test.js | 18 | Phase 2 |
 | route-health-checker.test.js | 4 | Phase 5 fix |
+
+---
+
+## Phase 6 PLAN-02 Deliverables
+
+修改文件:
+- `src/adapters/auto-refuel-decorator.js` — 注入 NotificationService/notifyTargets/quietHours，_logAlert 控制台分级 + fire-and-forget 多渠道通知，新增 _emitNotification 方法
 
 ---
 
@@ -118,11 +125,11 @@ Existing features already implemented (from PROJECT.md):
 
 ## Next Actions
 
-1. `/gsd-execute-phase 6` — 继续执行 Phase 6 剩余三个计划（PLAN-02, 03, 04）
+1. `/gsd-execute-phase 6` — 继续执行 Phase 6 剩余两个计划（PLAN-03, 04）
 2. 验证：`node --test test/*.test.js` 全部通过（目标 213+ 测试）
 3. 完成后进入 Phase 7: Open Source Release
 
 ---
 
 *State updated: 2026-05-09*
-*Phase 6 PLAN-01 完成 — 203/203 测试通过，新增 wecom/email 渠道 + quiet-hours 工具*
+*Phase 6 PLAN-02 完成 — 203/203 测试通过，AutoRefuelDecorator 接入 NotificationService + quietHours*
