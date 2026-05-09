@@ -1,4 +1,5 @@
 const { GatewayAdapter } = require('./gateway-adapter');
+const { isInQuietHours } = require('../utils/quiet-hours');
 
 class AutoRefuelDecorator extends GatewayAdapter {
   constructor(wrappedAdapter, options = {}) {
@@ -12,12 +13,19 @@ class AutoRefuelDecorator extends GatewayAdapter {
     this.cooldownMs = Number(options.cooldownMs ?? 60000);
     this.onRefuel = options.onRefuel || null;
     this.onAlert = options.onAlert || null;
+    this.notificationService = options.notificationService || null;
+    this.notifyTargets = options.notifyTargets || null;
+    this.quietHours = options.quietHours || null;
     this.refuelCodes = options.refuelCodes || [];
 
     this._refuelCount = 0;
     this._lastRefuelAt = 0;
     this._totalRefueledUsd = 0;
     this._alertLog = [];
+    this._maxAlertLog = Number(options.maxAlertLog ?? 1000);
+
+    // Promise lock to prevent concurrent refuel races (CONC-01)
+    this._refuelLock = Promise.resolve();
   }
 
   async getBalance(identity = {}) {
@@ -25,13 +33,32 @@ class AutoRefuelDecorator extends GatewayAdapter {
     const availableUsd = Number(balance.availableUsd ?? balance.balanceUsd ?? 0);
 
     if (this.autoRefuelEnabled && availableUsd < this.lowBalanceThresholdUsd) {
-      const refueled = await this._tryAutoRefuel(identity, availableUsd);
+      const refueled = await this._withRefuelLock(async () => {
+        // Re-check balance inside lock to prevent stale-read race (CONC-04)
+        const fresh = await this.wrappedAdapter.getBalance(identity);
+        const freshUsd = Number(fresh.availableUsd ?? fresh.balanceUsd ?? 0);
+        if (freshUsd >= this.lowBalanceThresholdUsd) return false;
+        return this._tryAutoRefuel(identity, freshUsd);
+      });
       if (refueled) {
         balance = await this.wrappedAdapter.getBalance(identity);
       }
     }
 
     return balance;
+  }
+
+  /** Acquire a Promise lock to serialize refuel attempts (CONC-01) */
+  async _withRefuelLock(fn) {
+    const prev = this._refuelLock;
+    let release;
+    this._refuelLock = new Promise((r) => { release = r; });
+    await prev;
+    try {
+      return await fn();
+    } finally {
+      release();
+    }
   }
 
   async _tryAutoRefuel(identity, availableUsd) {
@@ -107,9 +134,55 @@ class AutoRefuelDecorator extends GatewayAdapter {
   _logAlert(type, meta) {
     const alert = { type, timestamp: new Date().toISOString(), ...meta };
     this._alertLog.push(alert);
+    // Prevent unbounded memory growth (CONC-03)
+    if (this._alertLog.length > this._maxAlertLog) {
+      this._alertLog = this._alertLog.slice(-this._maxAlertLog);
+    }
     if (typeof this.onAlert === 'function') {
       this.onAlert(alert);
     }
+
+    // NOTF-01: 控制台告警
+    const isCritical = type === 'refuel_failed' || (meta && meta.availableUsd === 0);
+    if (isCritical) {
+      console.error('[AEB CRITICAL]', type, meta);
+    } else {
+      console.warn('[AEB WARN]', type, meta);
+    }
+
+    // NOTF-02~04: 多渠道通知（fire-and-forget，不阻塞主流程）
+    if (this.notificationService && !isInQuietHours(this.quietHours)) {
+      this._emitNotification(type, meta).catch(() => {});
+    }
+  }
+
+  async _emitNotification(type, meta) {
+    const levelMap = {
+      refuel_failed: 'critical',
+      balance_exhausted: 'critical',
+      refuel_success: 'info',
+    };
+    const level = levelMap[type] || 'warn';
+
+    const titleMap = {
+      refuel_failed: 'Auto-refuel failed',
+      refuel_success: 'Auto-refuel succeeded',
+      balance_exhausted: 'Balance exhausted',
+      refuel_cooldown: 'Refuel on cooldown',
+      refuel_limit_exceeded: 'Refuel limit reached',
+      refuel_no_method: 'No refuel method available',
+    };
+    const title = titleMap[type] || type;
+    const message = meta
+      ? Object.entries(meta).map(([k, v]) => `${k}: ${v}`).join(' | ')
+      : '';
+
+    const notification = { type, level, title, message, meta };
+
+    if (this.notifyTargets) {
+      return this.notificationService.send({ ...notification, targets: this.notifyTargets });
+    }
+    return this.notificationService.sendFromEnv(notification);
   }
 
   getAlertLog(limit = 100) {
@@ -129,6 +202,7 @@ class AutoRefuelDecorator extends GatewayAdapter {
   resetStats() {
     this._refuelCount = 0;
     this._totalRefueledUsd = 0;
+    this._lastRefuelAt = 0;
     this._alertLog = [];
   }
 
