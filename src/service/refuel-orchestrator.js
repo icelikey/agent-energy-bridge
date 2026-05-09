@@ -13,6 +13,8 @@ class RefuelOrchestrator {
     this.lowBalanceThresholdUsd = Number(options.lowBalanceThresholdUsd ?? 5);
     this.defaultIssuePlan = options.defaultIssuePlan ?? 'starter';
     this.defaultDocsTemplate = options.defaultDocsTemplate ?? 'quickstart';
+    this.freeModel = options.freeModel || process.env.AEB_FREE_MODEL || 'gemini-2.5-flash-free';
+    this.notificationService = options.notificationService || null;
 
     if (!this.adapter || !this.budgetGuard || !this.modelSelector) {
       throw new Error('adapter, budgetGuard and modelSelector are required');
@@ -57,11 +59,30 @@ class RefuelOrchestrator {
       routingPlan,
     });
 
+    // FUEL-03: 余额耗尽时强制降级到免费模型
+    const availableUsd = Number(balance.availableUsd ?? balance.balanceUsd ?? 0);
+    let effectiveModel = selectedModel;
+    let degraded = false;
+    if (availableUsd <= 0) {
+      effectiveModel = this.freeModel;
+      degraded = true;
+      if (this.notificationService) {
+        this.notificationService.sendFromEnv({
+          type: 'balance_exhausted_fallback',
+          level: 'critical',
+          title: 'Balance exhausted — switched to free model',
+          message: `Switched from ${selectedModel} to ${effectiveModel}`,
+          meta: { originalModel: selectedModel, freeModel: effectiveModel },
+        }).catch(() => {});
+      }
+    }
+
     const energyInsights = this.buildEnergyInsights(context);
 
     return {
-      status: guardDecision.allowed ? 'ready' : 'blocked',
-      selectedModel,
+      status: guardDecision.allowed || degraded ? 'ready' : 'blocked',
+      selectedModel: effectiveModel,
+      degraded,
       recommendation,
       routingPlan,
       guardDecision,
