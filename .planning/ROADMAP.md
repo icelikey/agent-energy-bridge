@@ -15,7 +15,7 @@
 | 3 | Concurrency Safety | 消除竞态条件和资源泄漏 | CONC-01~04 | 4 |
 | 4 | Token Metering | 精细化 token 统计与计费 | METR-01~05 | 5 |
 | 5 | Multi-Provider Routing | 主备中转站自动切换 | ROUT-01~05 | 5 |
-| 6 | Auto-Refuel & Notifications | 激活码对接 + 低余额提醒 + 免费兜底 | FUEL-01~05, NOTF-01~05 | 10 (3/4 plans done) |
+| 6 | Auto-Refuel & Notifications | 激活码对接 + 低余额提醒 + 免费兜底 | FUEL-01~05, NOTF-01~05 | 10 (4/4 plans done ✅) |
 | 7 | Open Source Release | 社区就绪：文档、CI/CD、版本管理 | OPEN-01~06 | 6 |
 
 **Total v1 requirements: 43**

@@ -1,7 +1,7 @@
 # State: Agent Energy Bridge
 
 **Project:** Agent Energy Bridge (AEB)
-**Status:** Phase 6 In Progress — PLAN-03 Complete
+**Status:** Phase 6 Complete — All Plans Done
 **Last Updated:** 2026-05-09
 
 ---
@@ -9,7 +9,7 @@
 ## Current Phase
 
 **Phase 6: Auto-Refuel & Notifications**
-- Status: In Progress (2/4 plans complete)
+- Status: Complete (4/4 plans complete)
 - Goal: 激活码兑换对接 NewAPI，低余额多渠道通知，余额耗尽免费模型兜底
 - Requirements: FUEL-01 ~ FUEL-05, NOTF-01 ~ NOTF-05
 - Key deliverables:
@@ -19,12 +19,13 @@
   - ✅ quietHours 免打扰配置
   - ✅ RefuelOrchestrator 余额耗尽降级到免费模型
   - ✅ buildContext 注入 notificationService
-  - 3 个新 HTTP 端点（/notify/config, /notify/test, /refuel/status）
+  - ✅ 3 个新 HTTP 端点（/notify/config, /notify/test, /refuel/status）
+  - ✅ 10 个新测试（213/213 全部通过）
 - Plans:
   - ✅ 06-PLAN-01 (Wave 1): NotificationService 扩展 + quiet-hours 工具
   - ✅ 06-PLAN-02 (Wave 2): AutoRefuelDecorator 接入 NotificationService
   - ✅ 06-PLAN-03 (Wave 2): RefuelOrchestrator 免费模型降级 + buildContext 注入
-  - 06-PLAN-04 (Wave 3): HTTP 端点 + 测试覆盖
+  - ✅ 06-PLAN-04 (Wave 3): HTTP 端点 + 测试覆盖
 
 ---
 
@@ -37,25 +38,41 @@
 | 3. Concurrency Safety | Completed | 4 | 4/4 |
 | 4. Token Metering | Completed | 5 | 5/5 |
 | 5. Multi-Provider Routing | Completed | 5 | 5/5 |
-| 6. Auto-Refuel Enhancement | In Progress | 10 | 9/10 |
+| 6. Auto-Refuel Enhancement | Complete | 10 | 10/10 |
 | 7. Open Source Release | Pending | 6 | 0/6 |
 
 ---
 
 ## Test Coverage
 
-**Current:** 203/203 通过（Phase 6 PLAN-01 完成后，无新增测试）
+**Current:** 213/213 通过（Phase 6 PLAN-04 完成后，新增 10 个测试）
 
 | Test File | Tests | Phase |
 |-----------|-------|-------|
 | multi-provider-router.test.js | 23 | Phase 5 |
 | token-meter.test.js | 27 | Phase 4 |
 | concurrency-safety.test.js | 10 | Phase 3 |
-| auto-refuel-decorator.test.js | 18 | Phase 2 |
+| auto-refuel-decorator.test.js | 22 | Phase 2 + Phase 6 |
 | ops-engine.test.js | 17 | Phase 2 |
 | session-store.test.js | 10 | Phase 2 |
 | model-selector-routing.test.js | 18 | Phase 2 |
 | route-health-checker.test.js | 4 | Phase 5 fix |
+| notification-service.test.js | 12 | Phase 6 |
+| refuel-orchestrator.test.js | 6 | Phase 6 |
+
+---
+
+## Phase 6 PLAN-04 Deliverables
+
+新增文件:
+- `src/server/handlers/notify.js` — getNotifyConfig + postNotifyTest（GET /notify/config, POST /notify/test）
+- `src/server/handlers/refuel-status.js` — getRefuelStatus（GET /refuel/status）
+
+修改文件:
+- `src/server/router.js` — 注册 3 条新路由 + 2 个 require
+- `test/auto-refuel-decorator.test.js` — 追加 4 个测试（22 total）
+- `test/notification-service.test.js` — 追加 4 个测试（12 total）
+- `test/refuel-orchestrator.test.js` — 追加 2 个测试（6 total）
 
 ---
 
@@ -133,11 +150,11 @@ Existing features already implemented (from PROJECT.md):
 
 ## Next Actions
 
-1. `/gsd-execute-phase 6` — 继续执行 Phase 6 最后一个计划（PLAN-04）
-2. 验证：`node --test test/*.test.js` 全部通过（目标 213+ 测试）
-3. 完成后进入 Phase 7: Open Source Release
+1. `/gsd-execute-phase 7` — 进入 Phase 7: Open Source Release
+2. Phase 7 目标：CONTRIBUTING.md、API 文档、GitHub Actions CI/CD、Docker 镜像、README 中英双语
+3. 注意：POST /notify/test 端点无认证保护，Phase 7 开源前评估是否需要 API key 保护
 
 ---
 
 *State updated: 2026-05-09*
-*Phase 6 PLAN-03 完成 — 203/203 测试通过，RefuelOrchestrator 免费模型降级 + buildContext 注入 notificationService*
+*Phase 6 PLAN-04 完成 — 213/213 测试通过，3 个新 HTTP 端点，Phase 6 全部 10/10 需求完成*
