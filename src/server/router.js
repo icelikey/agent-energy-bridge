@@ -11,6 +11,10 @@ const { postRenderDocs } = require('./handlers/docs');
 const { postSessionReport } = require('./handlers/session-report');
 const { getSessionSummary } = require('./handlers/session-summary');
 const { getOpsSnapshot, getOpsReport, getOpsEnergy, postOpsStart, postOpsStop } = require('./handlers/ops');
+const { postMeterRecord, getMeterStats, getMeterReport, getMeterBreakdown } = require('./handlers/meter');
+const { getRoutingStatus, getRoutingLog, postRoutingForce } = require('./handlers/routing');
+const { getNotifyConfig, postNotifyTest } = require('./handlers/notify');
+const { getRefuelStatus } = require('./handlers/refuel-status');
 
 const ROUTES = [
   { method: 'GET',  path: '/agent/v1/health',            handler: getHealth },
@@ -29,6 +33,19 @@ const ROUTES = [
   { method: 'GET',  path: '/agent/v1/ops/energy',         handler: getOpsEnergy },
   { method: 'POST', path: '/agent/v1/ops/start',          handler: postOpsStart },
   { method: 'POST', path: '/agent/v1/ops/stop',           handler: postOpsStop },
+  // Token metering (METR-01~05)
+  { method: 'POST', path: '/agent/v1/meter/record',       handler: postMeterRecord },
+  { method: 'GET',  path: '/agent/v1/meter/stats',        handler: getMeterStats },
+  { method: 'GET',  path: '/agent/v1/meter/report',       handler: getMeterReport },
+  { method: 'GET',  path: '/agent/v1/meter/breakdown',    handler: getMeterBreakdown },
+  // Multi-provider routing (ROUT-01~05)
+  { method: 'GET',  path: '/agent/v1/routing/status',     handler: getRoutingStatus },
+  { method: 'GET',  path: '/agent/v1/routing/log',        handler: getRoutingLog },
+  { method: 'POST', path: '/agent/v1/routing/force',      handler: postRoutingForce },
+  // Auto-refuel notifications (NOTF-01~05, FUEL-01~05)
+  { method: 'GET',  path: '/agent/v1/notify/config',      handler: getNotifyConfig },
+  { method: 'POST', path: '/agent/v1/notify/test',        handler: postNotifyTest },
+  { method: 'GET',  path: '/agent/v1/refuel/status',      handler: getRefuelStatus },
 ];
 
 function parseQuery(url) {
@@ -59,11 +76,11 @@ function createRequestObject(req) {
   };
 }
 
-async function handleRequest(req, res, context) {
+async function handleRequest(req, res, context, options = {}) {
   const request = createRequestObject(req);
 
   if (request.method === 'POST' || request.method === 'PUT' || request.method === 'PATCH') {
-    request.body = await parseJsonBody(req);
+    request.body = await parseJsonBody(req, { maxBodySize: options.maxBodySize });
   }
 
   const route = ROUTES.find((r) => r.method === request.method && r.path === request.path);
