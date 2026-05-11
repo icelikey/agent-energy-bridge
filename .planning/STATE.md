@@ -1,14 +1,42 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: executing
+last_updated: "2026-05-11T04:23:31.653Z"
+progress:
+  total_phases: 7
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 5
+---
+
 # State: Agent Energy Bridge
 
 **Project:** Agent Energy Bridge (AEB)
-**Status:** Phase 6 Complete — All Plans Done
-**Last Updated:** 2026-05-09
+**Status:** Phase 7 In Progress — 1/3 plans complete
+**Last Updated:** 2026-05-11
 
 ---
 
 ## Current Phase
 
+**Phase 7: Open Source Release**
+
+- Status: In Progress (1/3 plans complete — 07-PLAN-01 done, 07-PLAN-02/03 pending)
+- Goal: 社区就绪：CONTRIBUTING.md、API 文档、GitHub Actions CI/CD、Docker 镜像、README 中英双语、安全边界清障
+- Requirements: OPEN-01 ✅ complete, OPEN-02 ~ OPEN-06 pending
+- Plans:
+  - ✅ 07-PLAN-01 (Wave 1): 安全修复 — POST /notify/test X-API-Key 认证 + auth-middleware
+  - ⏳ 07-PLAN-02 (Wave 2): 待执行
+  - ⏳ 07-PLAN-03 (Wave 3): 待执行
+
+---
+
+## Previous Phase
+
 **Phase 6: Auto-Refuel & Notifications**
+
 - Status: Complete (4/4 plans complete)
 - Goal: 激活码兑换对接 NewAPI，低余额多渠道通知，余额耗尽免费模型兜底
 - Requirements: FUEL-01 ~ FUEL-05, NOTF-01 ~ NOTF-05
@@ -39,13 +67,13 @@
 | 4. Token Metering | Completed | 5 | 5/5 |
 | 5. Multi-Provider Routing | Completed | 5 | 5/5 |
 | 6. Auto-Refuel Enhancement | Complete | 10 | 10/10 |
-| 7. Open Source Release | Pending | 6 | 0/6 |
+| 7. Open Source Release | In Progress | 6 | 1/6 |
 
 ---
 
 ## Test Coverage
 
-**Current:** 213/213 通过（Phase 6 PLAN-04 完成后，新增 10 个测试）
+**Current:** 217/217 通过（Phase 7 PLAN-01 完成后，新增 4 个 auth-middleware 测试）
 
 | Test File | Tests | Phase |
 |-----------|-------|-------|
@@ -59,16 +87,31 @@
 | route-health-checker.test.js | 4 | Phase 5 fix |
 | notification-service.test.js | 12 | Phase 6 |
 | refuel-orchestrator.test.js | 6 | Phase 6 |
+| auth-middleware.test.js | 4 | Phase 7 |
+
+---
+
+## Phase 7 PLAN-01 Deliverables
+
+新增文件:
+- `src/server/middleware/auth-middleware.js` — createAuthMiddleware 工厂，X-API-Key 校验，零依赖
+- `test/auth-middleware.test.js` — 4 个测试（无 key 跳过、正确 key、错误 key 401、缺失 key 401）
+
+修改文件:
+- `src/server/handlers/notify.js` — postNotifyTest 前置 auth middleware，getNotifyConfig 保持公开
+- `src/server/index.js` — buildContext() 新增 apiKey 字段（options > AEB_API_KEY env > null）
 
 ---
 
 ## Phase 6 PLAN-04 Deliverables
 
 新增文件:
+
 - `src/server/handlers/notify.js` — getNotifyConfig + postNotifyTest（GET /notify/config, POST /notify/test）
 - `src/server/handlers/refuel-status.js` — getRefuelStatus（GET /refuel/status）
 
 修改文件:
+
 - `src/server/router.js` — 注册 3 条新路由 + 2 个 require
 - `test/auto-refuel-decorator.test.js` — 追加 4 个测试（22 total）
 - `test/notification-service.test.js` — 追加 4 个测试（12 total）
@@ -79,6 +122,7 @@
 ## Phase 6 PLAN-03 Deliverables
 
 修改文件:
+
 - `src/service/refuel-orchestrator.js` — 构造函数新增 freeModel/notificationService，prepareSession() 新增余额耗尽降级分支（FUEL-03），返回 degraded 字段
 - `src/server/index.js` — buildContext() 新增 notificationService 字段
 
@@ -87,6 +131,7 @@
 ## Phase 6 PLAN-02 Deliverables
 
 修改文件:
+
 - `src/adapters/auto-refuel-decorator.js` — 注入 NotificationService/notifyTargets/quietHours，_logAlert 控制台分级 + fire-and-forget 多渠道通知，新增 _emitNotification 方法
 
 ---
@@ -94,9 +139,11 @@
 ## Phase 6 PLAN-01 Deliverables
 
 新增文件:
+
 - `src/utils/quiet-hours.js` — isInQuietHours() 工具函数（跨午夜安全）
 
 修改文件:
+
 - `src/service/notification-service.js` — 新增 wecom + email 渠道，_parseEnvTargets() 解析新环境变量
 
 ---
@@ -104,11 +151,13 @@
 ## Phase 5 Deliverables
 
 新增文件:
+
 - `src/core/multi-provider-router.js` — MultiProviderRouter（N-provider 加权路由）
 - `src/server/handlers/routing.js` — 3 个路由 HTTP 端点
 - `test/multi-provider-router.test.js` — 23 个测试
 
 修改文件:
+
 - `src/index.js` — 导出 MultiProviderRouter, DEFAULT_ROUTER_OPTIONS
 - `src/server/router.js` — 注册 /agent/v1/routing/* 路由
 - `src/server/index.js` — buildContext + destroy 集成 multiProviderRouter
@@ -145,16 +194,17 @@ Existing features already implemented (from PROJECT.md):
 5. ~~AutoRefuel 竞态条件~~: ✅ 已修复
 6. ~~setInterval 未清理~~: ✅ 已修复
 7. ~~route-health-checker.test.js:5~~: ✅ 已修复（Phase 5）
+8. ~~POST /notify/test 无认证保护~~: ✅ 已修复（Phase 7 PLAN-01）
 
 ---
 
 ## Next Actions
 
-1. `/gsd-execute-phase 7` — 进入 Phase 7: Open Source Release
-2. Phase 7 目标：CONTRIBUTING.md、API 文档、GitHub Actions CI/CD、Docker 镜像、README 中英双语
-3. 注意：POST /notify/test 端点无认证保护，Phase 7 开源前评估是否需要 API key 保护
+1. 继续执行 Phase 7 剩余 plans（07-PLAN-02 / 03）
+2. Phase 7 剩余交付物：CONTRIBUTING.md、API 文档、GitHub Actions CI/CD、Docker 镜像、README 中英双语
+3. 生产部署文档需提醒设置 `AEB_API_KEY` 环境变量以启用 `/notify/test` 认证保护
 
 ---
 
-*State updated: 2026-05-09*
-*Phase 6 PLAN-04 完成 — 213/213 测试通过，3 个新 HTTP 端点，Phase 6 全部 10/10 需求完成*
+*State updated: 2026-05-11*
+*Phase 7 PLAN-01 完成 — 217/217 测试通过，OPEN-01 需求完成，auth-middleware 可复用于后续管理端点*
