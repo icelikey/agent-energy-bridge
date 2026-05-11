@@ -1,0 +1,50 @@
+# gitleaks 配置 — Agent Energy Bridge
+# 用途：在 CI 中扫描密钥泄露，同时允许文档/示例中的占位符不被误报
+# Source: https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml
+
+title = "Agent Energy Bridge — gitleaks config"
+
+# 使用 gitleaks 默认规则集为基础
+[extend]
+useDefault = true
+
+[allowlist]
+description = "允许文档/示例中的占位符与已废弃的测试密钥"
+
+# 文件级豁免：以下路径中的任何高熵字符串都视为占位符
+paths = [
+    '''^\.env\.example$''',
+    '''^README\.md$''',
+    '''^README\.en\.md$''',
+    '''^docs/.*\.md$''',
+    '''^docs/API\.md$''',
+    '''^CONTRIBUTING\.md$''',
+    '''^SECURITY\.md$''',
+    '''^CHANGELOG\.md$''',
+    '''^docker-compose\.yml$''',
+    '''^test/.*\.test\.js$''',
+    '''^tests/.*\.mjs$''',
+]
+
+# 通用占位符正则（即使在 src/ 中出现也视为安全）
+regexes = [
+    '''your-(api-key|password|username|secret|token)-here''',
+    '''your-newapi-server''',
+    '''<YOUR_[A-Z_]+>''',
+    '''example\.com''',
+    '''gateway\.example\.com''',
+    '''api\.example\.com''',
+    '''agent\.example\.com''',
+    '''ak-demo''',
+    '''sess-123''',
+    '''DEMO-2026''',
+    '''CODE[123]''',
+    '''RECHARGE-[0-9]+''',
+    '''secret-123''',
+    '''ghcr\.io/\{owner\}''',
+    '''github\.com/your-org''',
+    '''security@your-org\.com''',
+]
+
+# 已知 commit 豁免（如有历史泄露已撤销）— 初始为空，扫描后视情况追加
+commits = []
