@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-05-11T04:23:31.653Z"
+status: planning
+last_updated: "2026-05-11T04:30:00.000Z"
 progress:
   total_phases: 7
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 5
+  completed_phases: 6
+  total_plans: 8
+  completed_plans: 2
 ---
 
 # State: Agent Energy Bridge
 
 **Project:** Agent Energy Bridge (AEB)
-**Status:** Phase 7 In Progress — 1/3 plans complete
+**Status:** Phase 7 In Progress — 2/8 plans complete, 6 plans planned
 **Last Updated:** 2026-05-11
 
 ---
@@ -23,13 +23,18 @@ progress:
 
 **Phase 7: Open Source Release**
 
-- Status: In Progress (1/3 plans complete — 07-PLAN-01 done, 07-PLAN-02/03 pending)
+- Status: In Progress (2/8 plans complete — 07-PLAN-01~02 done, 07-PLAN-03~08 planned)
 - Goal: 社区就绪：CONTRIBUTING.md、API 文档、GitHub Actions CI/CD、Docker 镜像、README 中英双语、安全边界清障
-- Requirements: OPEN-01 ✅ complete, OPEN-02 ~ OPEN-06 pending
+- Requirements: OPEN-01 ~ OPEN-06 pending (0/6 complete)
 - Plans:
-  - ✅ 07-PLAN-01 (Wave 1): 安全修复 — POST /notify/test X-API-Key 认证 + auth-middleware
-  - ⏳ 07-PLAN-02 (Wave 2): 待执行
-  - ⏳ 07-PLAN-03 (Wave 3): 待执行
+  - ✅ 07-PLAN-01 (Wave 1): D-14 X-API-Key 认证中间件 — 已完成
+  - ✅ 07-PLAN-02 (Wave 1): D-15 安全扫描 + gitleaks 配置 + timingSafeEqual 升级 — 已完成
+  - ⏳ 07-PLAN-03 (Wave 2): docs/API.md 中英双语 26 端点 (OPEN-02)
+  - ⏳ 07-PLAN-04 (Wave 2): CONTRIBUTING.md + SECURITY.md (OPEN-01)
+  - ⏳ 07-PLAN-05 (Wave 2): README.en.md + README.md 互链 (OPEN-06)
+  - ⏳ 07-PLAN-06 (Wave 3): CI workflow + .env.example (OPEN-03)
+  - ⏳ 07-PLAN-07 (Wave 4): cliff.toml + CHANGELOG + release.yml (OPEN-04)
+  - ⏳ 07-PLAN-08 (Wave 4): docker-publish.yml + GHCR 验证 (OPEN-05)
 
 ---
 
@@ -67,13 +72,13 @@ progress:
 | 4. Token Metering | Completed | 5 | 5/5 |
 | 5. Multi-Provider Routing | Completed | 5 | 5/5 |
 | 6. Auto-Refuel Enhancement | Complete | 10 | 10/10 |
-| 7. Open Source Release | In Progress | 6 | 1/6 |
+| 7. Open Source Release | In Progress | 6 | 2/6 |
 
 ---
 
 ## Test Coverage
 
-**Current:** 217/217 通过（Phase 7 PLAN-01 完成后，新增 4 个 auth-middleware 测试）
+**Current:** 219/219 通过（Phase 7 PLAN-02 完成后，auth-middleware 6 个测试全部通过）
 
 | Test File | Tests | Phase |
 |-----------|-------|-------|
@@ -87,9 +92,26 @@ progress:
 | route-health-checker.test.js | 4 | Phase 5 fix |
 | notification-service.test.js | 12 | Phase 6 |
 | refuel-orchestrator.test.js | 6 | Phase 6 |
-| auth-middleware.test.js | 4 | Phase 7 |
+| auth-middleware.test.js | 6 | Phase 7 |
 
 ---
+
+## Phase 7 PLAN-02 Deliverables
+
+新增文件:
+- `.gitleaks.toml` — gitleaks allowlist 配置，覆盖占位符与测试夹具
+- `docs/security-scan-baseline.md` — 扫描结果基线，含 remediation 审计追踪
+
+修改文件:
+- `src/server/middleware/auth-middleware.js` — 升级为 `crypto.timingSafeEqual()` 恒时比较
+- `test/auth-middleware.test.js` — 新增 2 个 timingSafeEqual 测试用例（6/6 通过）
+- `.gitignore` — 添加已移除敏感文件的安全注释条目
+- `docs/PROJECT_DEVELOPMENT_GUIDE.md` — 两处 `107.174.146.180` 替换为 `your-server.example.com`
+
+移除文件（git rm --cached，仍保留在工作区）:
+- `FRIEND-TEST-GUIDE.md` — 含真实 API key + IP
+- `scripts/verify-newapi-live.js` — 含真实服务器凭据
+- `scripts/debug-cookie.js` — 含真实服务器凭据
 
 ## Phase 7 PLAN-01 Deliverables
 
@@ -195,16 +217,22 @@ Existing features already implemented (from PROJECT.md):
 6. ~~setInterval 未清理~~: ✅ 已修复
 7. ~~route-health-checker.test.js:5~~: ✅ 已修复（Phase 5）
 8. ~~POST /notify/test 无认证保护~~: ✅ 已修复（Phase 7 PLAN-01）
+9. **远程服务器密钥需手动 rotate**: `104.243.33.52:3000` 的 NewAPI key 和 `107.174.146.180` 的 test password 需所有者手动 rotate（见 docs/security-scan-baseline.md）
 
 ---
 
 ## Next Actions
 
-1. 继续执行 Phase 7 剩余 plans（07-PLAN-02 / 03）
-2. Phase 7 剩余交付物：CONTRIBUTING.md、API 文档、GitHub Actions CI/CD、Docker 镜像、README 中英双语
+1. 继续执行 Phase 7 剩余 plans（07-PLAN-03 ~ 08）
+2. Phase 7 剩余交付物：docs/API.md 中英双语、CONTRIBUTING.md、SECURITY.md、README 中英互链、CI workflow、CHANGELOG、Docker GHCR 发布
 3. 生产部署文档需提醒设置 `AEB_API_KEY` 环境变量以启用 `/notify/test` 认证保护
+4. **Wave 2 启动前确认**：远程服务器密钥已手动 rotate（104.243.33.52:3000 NewAPI key，107.174.146.180 test password）
+
+## Decisions Log
+
+- **Checkpoint Option A (07-PLAN-02)**: 用户选择"先处置再开源"——移除敏感文件 + 脱敏文档 + 记录 remediation，而非直接 BLOCKED 暂停 Phase 7。
 
 ---
 
 *State updated: 2026-05-11*
-*Phase 7 PLAN-01 完成 — 217/217 测试通过，OPEN-01 需求完成，auth-middleware 可复用于后续管理端点*
+*Phase 7 PLAN-02 完成 — 219/219 测试通过，D-15 完成，敏感信息已处置，Wave 2 可启动*
