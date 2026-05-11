@@ -1,3 +1,5 @@
+const { createAuthMiddleware } = require('../middleware/auth-middleware');
+
 function requireNotificationService(context) {
   if (!context.notificationService) {
     const error = new Error('Notification service not available');
@@ -28,6 +30,8 @@ async function getNotifyConfig(request, response, context) {
 
 async function postNotifyTest(request, response, context) {
   requireNotificationService(context);
+  const authMiddleware = createAuthMiddleware({ apiKey: context.apiKey });
+  authMiddleware(request, response, context);
   const body = request.body || {};
   const channel = body.channel || null;
   const level = body.level || 'info';
