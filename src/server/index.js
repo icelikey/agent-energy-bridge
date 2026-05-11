@@ -18,6 +18,7 @@ function buildContext(options = {}) {
     tokenMeter: options.tokenMeter || null,
     multiProviderRouter: options.multiProviderRouter || null,
     notificationService: options.notificationService || null,
+    apiKey: options.apiKey || process.env.AEB_API_KEY || null,
   };
 }
 
