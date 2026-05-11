@@ -1,4 +1,6 @@
-﻿# Agent Energy Bridge
+﻿> [English](README.en.md) | 中文
+
+# Agent Energy Bridge
 
 `agent-energy-bridge` 是一套面向 Claude Code、Codex、OpenClaw、Harness 等智能体场景的通用中转增强层。
 
