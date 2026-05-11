@@ -13,3 +13,8 @@ docs/private-*.md
 
 tmp-cdp.ps1
 _write_test.txt
+
+# Security: removed from tracking — contain real credentials (see docs/security-scan-baseline.md)
+FRIEND-TEST-GUIDE.md
+scripts/verify-newapi-live.js
+scripts/debug-cookie.js

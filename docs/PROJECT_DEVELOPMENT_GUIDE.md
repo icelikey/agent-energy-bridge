@@ -372,7 +372,7 @@ USD = quota / quota_per_unit
 
 | 变量 | 必填 | 默认值 | 说明 |
 |------|------|--------|------|
-| `NEWAPI_BASE_URL` | 是* | — | NewAPI 地址（如 `http://107.174.146.180`） |
+| `NEWAPI_BASE_URL` | 是* | — | NewAPI 地址（如 `http://your-newapi-server.example.com`） |
 | `NEWAPI_API_KEY` | 否 | — | API Key（Bearer 认证） |
 | `NEWAPI_USER_ID` | 否 | — | 用户 ID（管理 API 需要 `New-Api-User` 头部） |
 | `NEWAPI_USERNAME` | 否 | — | 登录用户名（自动获取 Session） |
@@ -719,7 +719,7 @@ POST /api/user/topup { key: code }
 
 ### 11.3 下一步建议
 
-1. **服务器部署**: 获取 SSH root 密码后，使用 Docker Compose 部署到 107.174.146.180
+1. **服务器部署**: 获取 SSH root 密码后，使用 Docker Compose 部署到 your-server.example.com
 2. **兑换码配置**: 在 NewAPI 后台创建兑换码，填入 `AUTO_REFUEL_CODES`
 3. **路由监控**: 配置 `HEALTH_CHECK_ROUTES` 监控实际上游模型地址
 4. **Skill 集成**: 在 Claude Code / Codex 中安装 skill，测试实际工作流
