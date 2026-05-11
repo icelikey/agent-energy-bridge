@@ -27,3 +27,18 @@ test('auth middleware throws 401 with missing X-API-Key', () => {
     { statusCode: 401, code: 'UNAUTHORIZED' }
   );
 });
+
+test('auth middleware rejects key with different length (timing-safe)', () => {
+  const middleware = createAuthMiddleware({ apiKey: 'secret-123' });
+  assert.throws(
+    () => middleware({ headers: { 'x-api-key': 'secret-123-extra' } }, {}, {}),
+    { statusCode: 401, code: 'UNAUTHORIZED' }
+  );
+});
+
+test('auth middleware accepts correct key via timingSafeEqual', () => {
+  const middleware = createAuthMiddleware({ apiKey: 'a'.repeat(64) });
+  assert.doesNotThrow(
+    () => middleware({ headers: { 'x-api-key': 'a'.repeat(64) } }, {}, {})
+  );
+});
