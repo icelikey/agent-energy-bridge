@@ -9,16 +9,23 @@
 
 const crypto = require('node:crypto');
 
+// Process-level random key used solely for constant-time comparison.
+// This key is not stored or transmitted; it exists only in memory for
+// the lifetime of the process. Compromising it does not reveal the
+// actual API key because HMAC-SHA256 is a one-way function.
+const COMPARE_KEY = crypto.randomBytes(32);
+
 /**
  * Constant-time string comparison to prevent timing attacks.
- * Returns false if inputs are not strings or have different lengths.
+ * Uses HMAC-SHA256 to produce fixed-length digests (32 bytes) so that
+ * the comparison time is independent of input length, eliminating
+ * length-leakage vulnerabilities.
  */
 function safeEqual(a, b) {
   if (typeof a !== 'string' || typeof b !== 'string') return false;
-  const ba = Buffer.from(a);
-  const bb = Buffer.from(b);
-  if (ba.length !== bb.length) return false;
-  return crypto.timingSafeEqual(ba, bb);
+  const hashA = crypto.createHmac('sha256', COMPARE_KEY).update(a).digest();
+  const hashB = crypto.createHmac('sha256', COMPARE_KEY).update(b).digest();
+  return crypto.timingSafeEqual(hashA, hashB);
 }
 
 function createAuthMiddleware(options = {}) {
