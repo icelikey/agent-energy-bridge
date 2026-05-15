@@ -16,7 +16,7 @@
 | 4 | Token Metering | 精细化 token 统计与计费 | METR-01~05 | 5 |
 | 5 | Multi-Provider Routing | 主备中转站自动切换 | ROUT-01~05 | 5 |
 | 6 | Auto-Refuel & Notifications | 激活码对接 + 低余额提醒 + 免费兜底 | FUEL-01~05, NOTF-01~05 | 10 ✅ Completed 2026-05-09 |
-| 7 | Open Source Release | 社区就绪：文档、CI/CD、版本管理 | OPEN-01~06 | 6 🏗️ In Progress 2026-05-11 (1/6: OPEN-01 ✅) |
+| 7 | Open Source Release | 社区就绪：文档、CI/CD、版本管理 | OPEN-01~06 | 6 ✅ Completed 2026-05-11 |
 
 **Total v1 requirements: 43**
 
@@ -153,11 +153,23 @@
 
 **Success Criteria:**
 1. CONTRIBUTING.md 包含开发环境搭建、PR 流程、代码规范
-2. API 文档覆盖所有 16 个端点，含请求/响应示例
+2. API 文档覆盖所有 26 个端点，含请求/响应示例
 3. GitHub Actions 在 PR 时运行测试和安全扫描
 4. 版本发布自动化：打 tag → 生成 changelog → 创建 release
-5. Docker 镜像自动构建并推送到 Docker Hub
+5. Docker 镜像自动构建并推送到 GitHub Container Registry (ghcr.io)
 6. README 中英双语，含快速开始和架构概览
+
+**Plans:** 8 plans
+
+Plans:
+- [x] 07-PLAN-01.md — 安全修复：notify/test 认证 + auth-middleware (D-14) [Complete]
+- [ ] 07-PLAN-02.md — 安全扫描门槛：gitleaks config + 基线扫描 + timingSafeEqual 升级 (D-15)
+- [ ] 07-PLAN-03.md — docs/API.md 中英双语 26 端点 (OPEN-02)
+- [ ] 07-PLAN-04.md — CONTRIBUTING.md + SECURITY.md (OPEN-01)
+- [ ] 07-PLAN-05.md — README.en.md + README.md 切换链接 (OPEN-06)
+- [ ] 07-PLAN-06.md — .github/workflows/ci.yml + .env.example 更新 (OPEN-03)
+- [ ] 07-PLAN-07.md — cliff.toml + CHANGELOG.md + release.yml (OPEN-04)
+- [ ] 07-PLAN-08.md — .github/workflows/docker-publish.yml (OPEN-05)
 
 **Key Risk:** 开源后 Issue/PR 管理需要维护者时间投入
 
@@ -205,4 +217,4 @@ Phase 7 (Open Source) ←── Phase 6 (Auto-Refuel) ←── Phase 5 (Routing
 ---
 
 *Roadmap created: 2026-05-04*
-*Last updated: 2026-05-11 — Phase 7 PLAN-01 complete (OPEN-01)*
+*Last updated: 2026-05-11 — Phase 7 PLAN-01 complete (D-14 shipped); PLAN-02~04 revised per checker feedback*

@@ -175,7 +175,8 @@ class RouteHealthChecker {
 
   start() {
     if (this._intervalId) return;
-    this.runCheck();
+    // Fire first check asynchronously so exceptions don't prevent interval setup (CONC-02)
+    this.runCheck().catch(() => { /* ignore startup check errors */ });
     this._intervalId = setInterval(() => this.runCheck(), this.checkIntervalMs);
   }
 
@@ -184,6 +185,15 @@ class RouteHealthChecker {
       clearInterval(this._intervalId);
       this._intervalId = null;
     }
+  }
+
+  /** Dispose all resources — timers, history, references (CONC-02) */
+  destroy() {
+    this.stop();
+    this._statusMap.clear();
+    this._history = [];
+    this.onStatusChange = null;
+    this.logger = null;
   }
 
   getHistory(limit = 100) {

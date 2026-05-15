@@ -38,6 +38,13 @@ jobs:
           cat RELEASE_BODY.md || echo "(empty)"
           echo "==================================="
 
+      - name: Verify release body is not empty
+        run: |
+          if [ ! -s RELEASE_BODY.md ]; then
+            echo "Error: Release body is empty, aborting"
+            exit 1
+          fi
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:

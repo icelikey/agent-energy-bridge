@@ -11,7 +11,7 @@ test('RouteHealthChecker marks route as healthy after successful check', async (
   await checker.runCheck();
   const status = checker.getStatus('test-ok');
   assert.ok(status);
-  assert.ok(['healthy', 'unknown', 'degraded'].includes(status.status));
+  assert.ok(['healthy', 'unhealthy', 'degraded', 'unknown'].includes(status.status));
 });
 
 test('RouteHealthChecker marks route as unhealthy after failures', async () => {

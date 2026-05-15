@@ -1,5 +1,35 @@
+const { validateBody } = require('../../utils/validator');
+
+const OPTIMIZE_SCHEMA = {
+  taskType: { type: 'string', maxLength: 50, required: false },
+  budgetTier: { type: 'enum', allowed: ['free', 'economy', 'balanced', 'premium', null], required: false },
+  estimatedCostUsd: { type: 'number', min: 0, max: 10000, required: false },
+  requestedTokens: { type: 'number', min: 0, max: 100_000_000, integer: true, required: false },
+  dailySpentUsd: { type: 'number', min: 0, max: 100000, required: false },
+  hourlyTokensUsed: { type: 'number', min: 0, max: 1_000_000_000, integer: true, required: false },
+  availableUsd: { type: 'number', min: 0, max: 100000, required: false },
+  protocol: { type: 'string', maxLength: 20, required: false },
+  requiredCapabilities: { type: 'array', maxLength: 20, required: false },
+  needsUniversalProtocol: { type: 'boolean', required: false },
+  qualityPriority: { type: 'string', maxLength: 20, required: false },
+  tasks: { type: 'array', maxLength: 50, required: false },
+  taskWeights: { type: 'object', required: false },
+  client: { type: 'string', maxLength: 100, required: false },
+};
+
 async function postOptimize(request, response, context) {
   const body = request.body || {};
+
+  const validation = validateBody(body, OPTIMIZE_SCHEMA);
+  if (!validation.valid) {
+    const error = new Error(`Invalid request: ${validation.errors.map((e) => `${e.field}: ${e.message}`).join('; ')}`);
+    error.statusCode = 400;
+    error.code = 'VALIDATION_ERROR';
+    error.details = validation.errors;
+    throw error;
+  }
+
+  const sanitized = validation.sanitized;
 
   if (!context.modelSelector || !context.budgetGuard) {
     const error = new Error('Model selector or budget guard not available');
@@ -8,10 +38,10 @@ async function postOptimize(request, response, context) {
     throw error;
   }
 
-  let availableUsd = body.availableUsd ?? 0;
+  let availableUsd = sanitized.availableUsd ?? 0;
   if (context.adapter && typeof context.adapter.getBalance === 'function') {
     try {
-      const balance = await context.adapter.getBalance({ client: body.client });
+      const balance = await context.adapter.getBalance({ client: sanitized.client });
       availableUsd = Number(balance?.availableUsd ?? balance?.balanceUsd ?? availableUsd);
     } catch {
       // keep fallback from body or 0
@@ -19,23 +49,23 @@ async function postOptimize(request, response, context) {
   }
 
   const recommendation = context.modelSelector.recommend({
-    taskType: body.taskType,
-    requiredCapabilities: body.requiredCapabilities,
-    budgetTier: body.budgetTier,
-    protocol: body.protocol,
-    needsUniversalProtocol: body.needsUniversalProtocol,
-    qualityPriority: body.qualityPriority,
-    tasks: body.tasks,
-    taskWeights: body.taskWeights,
+    taskType: sanitized.taskType,
+    requiredCapabilities: sanitized.requiredCapabilities,
+    budgetTier: sanitized.budgetTier,
+    protocol: sanitized.protocol,
+    needsUniversalProtocol: sanitized.needsUniversalProtocol,
+    qualityPriority: sanitized.qualityPriority,
+    tasks: sanitized.tasks,
+    taskWeights: sanitized.taskWeights,
   });
 
   const selectedModelMeta = recommendation.primary || {};
   const guardDecision = context.budgetGuard.evaluateUsage({
     model: selectedModelMeta.id,
-    estimatedCostUsd: body.estimatedCostUsd ?? 0,
-    requestedTokens: body.requestedTokens ?? 0,
-    dailySpentUsd: body.dailySpentUsd ?? 0,
-    hourlyTokensUsed: body.hourlyTokensUsed ?? 0,
+    estimatedCostUsd: sanitized.estimatedCostUsd ?? 0,
+    requestedTokens: sanitized.requestedTokens ?? 0,
+    dailySpentUsd: sanitized.dailySpentUsd ?? 0,
+    hourlyTokensUsed: sanitized.hourlyTokensUsed ?? 0,
     availableUsd,
     modelPricePer1kUsd: selectedModelMeta.pricePer1kUsd ?? 0,
     fallbackModel: recommendation.fallback?.id ?? context.budgetGuard.snapshot().fallbackModel,
@@ -47,7 +77,7 @@ async function postOptimize(request, response, context) {
   }
   const savingActions = [];
 
-  if (!guardDecision.allowed && body.requestedTokens > 40000) {
+  if (!guardDecision.allowed && (sanitized.requestedTokens ?? 0) > 40000) {
     savingActions.push('compress_context');
   }
 
@@ -68,8 +98,8 @@ async function postOptimize(request, response, context) {
       fallback: recommendation.fallback,
     },
     savingActions,
-    estimatedCostUsd: body.estimatedCostUsd ?? 0,
-    requestedTokens: body.requestedTokens ?? 0,
+    estimatedCostUsd: sanitized.estimatedCostUsd ?? 0,
+    requestedTokens: sanitized.requestedTokens ?? 0,
   };
 }
 

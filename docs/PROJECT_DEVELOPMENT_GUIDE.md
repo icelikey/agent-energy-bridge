@@ -262,21 +262,24 @@ USD = quota / quota_per_unit
 
 ### 4.1 端点列表
 
-| 端点 | 方法 | 说明 |
-|------|------|------|
-| `/agent/v1/health` | GET | 健康检查 |
-| `/agent/v1/balance` | GET | 查询余额 |
-| `/agent/v1/usage/summary` | GET | 用量摘要 |
-| `/agent/v1/models/capabilities` | GET | 模型能力列表 |
-| `/agent/v1/recommend` | POST | 模型推荐 |
-| `/agent/v1/optimize` | POST | 预算优化判断 |
-| `/agent/v1/refuel/redeem` | POST | 兑换码充值 |
-| `/agent/v1/keys/issue` | POST | 签发新 Key |
-| `/agent/v1/docs/render` | POST | 渲染接入文档 |
-| `/agent/v1/session/report` | POST | 上报会话消耗 |
-| `/agent/v1/ops/snapshot` | GET | 手动抓取运营快照 |
-| `/agent/v1/ops/report` | GET | 运营趋势报告 |
-| `/agent/v1/ops/energy` | GET | 能量效率报告 |
+| 端点 | 方法 | 说明 | 认证 |
+|------|------|------|------|
+| `/agent/v1/health` | GET | 健康检查 | 无 |
+| `/agent/v1/balance` | GET | 查询余额 | 无 |
+| `/agent/v1/usage/summary` | GET | 用量摘要 | 无 |
+| `/agent/v1/models/capabilities` | GET | 模型能力列表 | 无 |
+| `/agent/v1/recommend` | POST | 模型推荐 | 无 |
+| `/agent/v1/optimize` | POST | 预算优化判断 | 无 |
+| `/agent/v1/refuel/redeem` | POST | 兑换码充值 | 无 |
+| `/agent/v1/keys/issue` | POST | 签发新 Key | 无 |
+| `/agent/v1/docs/render` | POST | 渲染接入文档 | 无 |
+| `/agent/v1/session/report` | POST | 上报会话消耗 | 无 |
+| `/agent/v1/ops/snapshot` | GET | 手动抓取运营快照 | 无 |
+| `/agent/v1/ops/report` | GET | 运营趋势报告 | 无 |
+| `/agent/v1/ops/energy` | GET | 能量效率报告 | 无 |
+| `/agent/v1/notify/config` | GET | 通知渠道配置 | 无 |
+| `/agent/v1/notify/test` | POST | 发送测试通知 | `X-API-Key` |
+| `/agent/v1/refuel/status` | GET | 自动充值状态 | 无 |
 
 ### 4.2 关键端点详情
 

@@ -1,4 +1,11 @@
+const { randomBytes } = require('crypto');
 const { GatewayAdapter } = require('./gateway-adapter');
+
+function generateApiKey() {
+  const timestamp = Date.now().toString(36);
+  const random = randomBytes(16).toString('hex');
+  return `ak-mem-${timestamp}-${random}`;
+}
 
 class MemoryAdapter extends GatewayAdapter {
   constructor(options = {}) {
@@ -8,7 +15,14 @@ class MemoryAdapter extends GatewayAdapter {
     this.hourlyTokensUsed = Number(options.hourlyTokensUsed ?? 0);
     this.autoRefuelsToday = Number(options.autoRefuelsToday ?? 0);
     this.autoPurchasedUsdToday = Number(options.autoPurchasedUsdToday ?? 0);
-    this.codes = new Map(Object.entries(options.codes || { 'DEMO-2026': 10 }));
+    // Demo codes only enabled in demo mode; warn if fallback is used
+    const demoCodes = options.codes || {};
+    if (!Object.keys(demoCodes).length && process.env.AEB_DEMO_MODE === '1') {
+      console.warn('[MemoryAdapter] Using demo activation codes. Set AEB_DEMO_MODE=1 explicitly for demo environments only.');
+      this.codes = new Map([['DEMO-2026', 10]]);
+    } else {
+      this.codes = new Map(Object.entries(demoCodes));
+    }
     this.issuedKeys = [];
     this.docsTemplates = Object.assign(
       {
@@ -51,7 +65,7 @@ class MemoryAdapter extends GatewayAdapter {
   }
 
   async issueKey({ owner, group, plan, metadata }) {
-    const key = `ak-mem-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const key = generateApiKey();
     const record = { apiKey: key, owner, group, plan, metadata, createdAt: new Date().toISOString() };
     this.issuedKeys.push(record);
     return record;
@@ -64,7 +78,7 @@ class MemoryAdapter extends GatewayAdapter {
       error.status = 404;
       throw error;
     }
-    const newKey = `ak-mem-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const newKey = generateApiKey();
     record.apiKey = newKey;
     record.rotatedAt = new Date().toISOString();
     return record;

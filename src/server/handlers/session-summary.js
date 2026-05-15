@@ -7,15 +7,17 @@ async function getSessionSummary(request, response, context) {
   }
 
   const query = request.query || {};
+  const rawLimit = Number(query.limit || 100);
+  const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(1000, Math.floor(rawLimit))) : 100;
   let sessions = [];
 
   if (context.sessionStore) {
     if (query.taskType) {
-      sessions = context.sessionStore.getSessionsByTaskType(query.taskType, Number(query.limit || 100));
+      sessions = context.sessionStore.getSessionsByTaskType(query.taskType, limit);
     } else if (query.model) {
-      sessions = context.sessionStore.getSessionsByModel(query.model, Number(query.limit || 100));
+      sessions = context.sessionStore.getSessionsByModel(query.model, limit);
     } else {
-      sessions = context.sessionStore.getRecentSessions(Number(query.limit || 100));
+      sessions = context.sessionStore.getRecentSessions(limit);
     }
   }
 
@@ -27,7 +29,7 @@ async function getSessionSummary(request, response, context) {
     filters: {
       taskType: query.taskType || null,
       model: query.model || null,
-      limit: Number(query.limit || 100),
+      limit,
     },
   };
 }

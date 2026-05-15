@@ -19,7 +19,7 @@ This project is in early open-source release stage. Only the latest minor versio
 
 **Please do not open public GitHub Issues for security vulnerabilities.**
 
-Email `security@your-org.com` (replace with the project maintainer's email when forking) with the subject prefix `[SECURITY]`. Include:
+Please use **GitHub Private Vulnerability Reporting** (repository → Security → Advisories → Report a vulnerability) instead of opening public issues. Include:
 
 1. **Vulnerability type** (e.g. Authentication Bypass, Information Disclosure, Remote Code Execution, Supply Chain)
 2. **Affected versions** (commit hash, tag, or `main` HEAD)
@@ -93,7 +93,7 @@ The following are explicitly out of scope for this security policy:
 
 **请不要直接为安全漏洞开公开的 GitHub Issue。**
 
-发邮件到 `security@your-org.com`（fork 时由维护者替换为真实邮箱），主题以 `[SECURITY]` 开头。邮件内容包括：
+请使用 GitHub **私密漏洞报告**（仓库主页 → Security → Advisories → Report a vulnerability），不要开公开 Issue。报告内容包括：
 
 1. **漏洞类型**（认证绕过 / 信息泄漏 / RCE / 供应链等）
 2. **受影响版本**（commit hash、tag 或 `main` HEAD）

@@ -108,8 +108,8 @@ PR 必须：
 
 发现安全漏洞时**不要**直接开 Issue。请按以下流程上报：
 
-1. 发邮件到 `security@your-org.com`，主题以 `[SECURITY]` 开头
-2. 邮件内容包含：漏洞类型 / 复现步骤（PoC） / 受影响版本 / 期望处置方式
+1. 使用 GitHub **Private Vulnerability Reporting**（仓库主页 → Security → Advisories → Report a vulnerability）
+2. 报告内容包含：漏洞类型 / 复现步骤（PoC） / 受影响版本 / 期望处置方式
 3. 维护者将在 72 小时内回复确认
 
 完整流程见 `SECURITY.md`。

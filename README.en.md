@@ -100,7 +100,7 @@ const {
   BudgetGuard,
   ModelSelector,
   RefuelOrchestrator,
-} = require('./src');
+} = require('agent-energy-bridge'); // local dev: require('./src')
 
 const adapter = {
   async getUsage() {

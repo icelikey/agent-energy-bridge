@@ -5,11 +5,20 @@ function sendError(response, error) {
     error: error.code || error.name || 'INTERNAL_ERROR',
     message: error.message || 'Internal server error',
   };
+  if (error.details) {
+    body.details = error.details;
+  }
   if (process.env.NODE_ENV === 'development') {
     body.stack = error.stack;
   }
+
+  const headers = { 'content-type': 'application/json' };
+  if (statusCode === 429 && error.retryAfter) {
+    headers['retry-after'] = String(error.retryAfter);
+  }
+
   if (!response.headersSent) {
-    response.writeHead(statusCode, { 'content-type': 'application/json' });
+    response.writeHead(statusCode, headers);
     response.end(JSON.stringify(body));
   }
 }

@@ -121,7 +121,7 @@ test('AutoRefuelDecorator uses redeemCode when topUp is unavailable', async () =
   assert.equal(balance.availableUsd, 12);
 });
 
-test('AutoRefuelDecorator cycles through refuelCodes', async () => {
+test('AutoRefuelDecorator consumes refuelCodes FIFO by default (single-use code)', async () => {
   const redeemedCodes = [];
   const adapter = makeMockAdapter({
     balance: { availableUsd: 2, balanceUsd: 2 },
@@ -139,14 +139,64 @@ test('AutoRefuelDecorator cycles through refuelCodes', async () => {
     refuelCodes: ['CODE-A', 'CODE-B'],
   });
 
+  // 默认 FIFO 消耗：用完池就停止（不会回头复用 CODE-A）
+  await decorator.getBalance();
+  await decorator.getBalance();
+  await decorator.getBalance();  // 池已空，触发 refuel_no_codes
+
+  assert.deepEqual(redeemedCodes, ['CODE-A', 'CODE-B']);
+  assert.equal(decorator.refuelCodes.length, 0);
+  assert.ok(decorator.getAlertLog().some((a) => a.type === 'refuel_no_codes'));
+});
+
+test('AutoRefuelDecorator cycles codes when consumeCode is false (backward compat for reusable codes)', async () => {
+  const redeemedCodes = [];
+  const adapter = makeMockAdapter({
+    balance: { availableUsd: 2, balanceUsd: 2 },
+    redeemCode: async ({ code }) => {
+      redeemedCodes.push(code);
+      return { ok: true };
+    },
+  });
+
+  const decorator = new AutoRefuelDecorator(adapter, {
+    lowBalanceThresholdUsd: 5,
+    refuelAmountUsd: 10,
+    cooldownMs: 0,
+    maxRefuelsPerHour: 3,
+    refuelCodes: ['CODE-A', 'CODE-B'],
+    consumeCode: false,  // 显式启用循环模式（适用于套餐码等可重复兑换的场景）
+  });
+
   await decorator.getBalance();
   await decorator.getBalance();
   await decorator.getBalance();
 
   assert.deepEqual(redeemedCodes, ['CODE-A', 'CODE-B', 'CODE-A']);
+  // 循环模式下池不消耗
+  assert.equal(decorator.refuelCodes.length, 2);
 });
 
-test('AutoRefuelDecorator generates auto-refuel code when no codes provided', async () => {
+test('AutoRefuelDecorator does not synthesize code by default (most gateways reject synthetic codes)', async () => {
+  const adapter = makeMockAdapter({
+    balance: { availableUsd: 2, balanceUsd: 2 },
+    redeemCode: async () => ({ ok: true }),
+  });
+
+  const decorator = new AutoRefuelDecorator(adapter, {
+    lowBalanceThresholdUsd: 5,
+    refuelAmountUsd: 10,
+    cooldownMs: 0,
+    refuelCodes: [],  // 没有配置码
+  });
+
+  await decorator.getBalance();
+  // 默认 enableSyntheticCode:false → refuel_no_codes 告警
+  assert.ok(decorator.getAlertLog().some((a) => a.type === 'refuel_no_codes'));
+  assert.equal(decorator._refuelCount, 0);
+});
+
+test('AutoRefuelDecorator generates auto-refuel code when enableSyntheticCode is true (MemoryAdapter demo)', async () => {
   let redeemedCode = null;
   const adapter = makeMockAdapter({
     balance: { availableUsd: 2, balanceUsd: 2 },
@@ -160,10 +210,97 @@ test('AutoRefuelDecorator generates auto-refuel code when no codes provided', as
     lowBalanceThresholdUsd: 5,
     refuelAmountUsd: 10,
     cooldownMs: 0,
+    enableSyntheticCode: true,
   });
 
   await decorator.getBalance();
   assert.ok(redeemedCode.startsWith('AUTO-REFUEL-10-'));
+});
+
+// ----------------------------------------------------------------
+// Bug fix: maxRefuelsPerHour sliding window (replaces broken "lifetime counter")
+// ----------------------------------------------------------------
+
+test('AutoRefuelDecorator sliding window resets maxRefuelsPerHour as old timestamps expire', async () => {
+  let topUpCount = 0;
+  const adapter = makeMockAdapter({
+    balance: { availableUsd: 2, balanceUsd: 2 },
+    topUp: async () => {
+      topUpCount++;
+      return { ok: true };
+    },
+  });
+
+  // 使用 200ms 窗口模拟"1 小时"，便于测试
+  const decorator = new AutoRefuelDecorator(adapter, {
+    lowBalanceThresholdUsd: 5,
+    refuelAmountUsd: 10,
+    cooldownMs: 0,
+    maxRefuelsPerHour: 2,
+    refuelWindowMs: 200,  // 200ms 窗口
+  });
+
+  // 第 1 次窗口：用尽 2 次配额
+  await decorator.getBalance();
+  await decorator.getBalance();
+  assert.equal(topUpCount, 2);
+  assert.equal(decorator.getRefuelStats().recentRefuels, 2);
+
+  // 第 3 次应被限流
+  await decorator.getBalance();
+  assert.equal(topUpCount, 2, '应被滑动窗口限流');
+
+  // 等待窗口过期
+  await new Promise((r) => setTimeout(r, 250));
+
+  // 旧时间戳应被清理，配额恢复，第 4 次可以加油
+  await decorator.getBalance();
+  assert.equal(topUpCount, 3, '滑动窗口过期后配额必须恢复');
+  assert.equal(decorator.getRefuelStats().recentRefuels, 1, 'recentRefuels 应只统计窗口内的次数');
+  // refuelCount 是累计计数（生命周期内），不重置
+  assert.equal(decorator._refuelCount, 3);
+});
+
+test('AutoRefuelDecorator getRefuelStats exposes recentRefuels and remainingRefuelCodes', async () => {
+  const adapter = makeMockAdapter({
+    balance: { availableUsd: 2, balanceUsd: 2 },
+    redeemCode: async () => ({ ok: true }),
+  });
+
+  const decorator = new AutoRefuelDecorator(adapter, {
+    lowBalanceThresholdUsd: 5,
+    refuelAmountUsd: 10,
+    cooldownMs: 0,
+    refuelCodes: ['A', 'B', 'C'],
+  });
+
+  await decorator.getBalance();
+  await decorator.getBalance();
+  const stats = decorator.getRefuelStats();
+  assert.equal(stats.refuelCount, 2);
+  assert.equal(stats.recentRefuels, 2);
+  assert.equal(stats.remainingRefuelCodes, 1);  // FIFO 消耗后剩 1 个
+  assert.equal(stats.consumeCode, true);
+});
+
+test('AutoRefuelDecorator handles redeem ok:false (NewAPI failure mode) gracefully', async () => {
+  const alerts = [];
+  const adapter = makeMockAdapter({
+    balance: { availableUsd: 2, balanceUsd: 2 },
+    redeemCode: async () => ({ ok: false, message: 'invalid code' }),  // NewAPI 返回失败但不抛错
+  });
+
+  const decorator = new AutoRefuelDecorator(adapter, {
+    lowBalanceThresholdUsd: 5,
+    refuelAmountUsd: 10,
+    cooldownMs: 0,
+    refuelCodes: ['BAD-CODE'],
+    onAlert: (a) => alerts.push(a),
+  });
+
+  await decorator.getBalance();
+  assert.ok(alerts.some((a) => a.type === 'refuel_failed'), '应记录 refuel_failed 告警');
+  assert.equal(decorator._refuelCount, 0, '失败不应计入 refuel_count');
 });
 
 test('AutoRefuelDecorator proportional strategy calculates amount correctly', async () => {

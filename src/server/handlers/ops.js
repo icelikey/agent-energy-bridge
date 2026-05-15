@@ -21,7 +21,8 @@ async function getOpsReport(request, response, context) {
     throw error;
   }
 
-  const limit = Number(request.query?.limit || 168);
+  const rawLimit = Number(request.query?.limit || 168);
+  const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(10000, Math.floor(rawLimit))) : 168;
   const report = context.opsEngine.generateReport({ limit });
 
   return {

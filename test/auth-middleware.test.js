@@ -42,3 +42,24 @@ test('auth middleware accepts correct key via timingSafeEqual', () => {
     () => middleware({ headers: { 'x-api-key': 'a'.repeat(64) } }, {}, {})
   );
 });
+
+test('auth middleware handles missing headers object', () => {
+  const middleware = createAuthMiddleware({ apiKey: 'secret-123' });
+  assert.throws(
+    () => middleware({}, {}, {}),
+    { statusCode: 401, code: 'UNAUTHORIZED' }
+  );
+});
+
+test('auth middleware handles undefined x-api-key header', () => {
+  const middleware = createAuthMiddleware({ apiKey: 'secret-123' });
+  assert.throws(
+    () => middleware({ headers: { 'x-api-key': undefined } }, {}, {}),
+    { statusCode: 401, code: 'UNAUTHORIZED' }
+  );
+});
+
+test('auth middleware handles empty string apiKey as no-op', () => {
+  const middleware = createAuthMiddleware({ apiKey: '' });
+  assert.doesNotThrow(() => middleware({ headers: {} }, {}, {}));
+});

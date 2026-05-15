@@ -72,6 +72,18 @@ class OpsEngine {
     }
   }
 
+  /** Dispose all resources — timers, metrics, references (CONC-02) */
+  destroy() {
+    this.stopMonitoring();
+    this.metrics = [];
+    this.adapter = null;
+    this.budgetGuard = null;
+    this.modelSelector = null;
+    this.energyEngine = null;
+    this.sessionStore = null;
+    this.logger = null;
+  }
+
   generateReport(options = {}) {
     const limit = Number(options.limit ?? 168);
     const recent = this.metrics.slice(-limit);

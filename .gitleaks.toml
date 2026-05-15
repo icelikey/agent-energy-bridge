@@ -31,10 +31,10 @@ regexes = [
     '''your-(api-key|password|username|secret|token)-here''',
     '''your-newapi-server''',
     '''<YOUR_[A-Z_]+>''',
-    '''example\.com''',
-    '''gateway\.example\.com''',
-    '''api\.example\.com''',
-    '''agent\.example\.com''',
+    '''^https?://.*example\.com''',
+    '''^https?://.*gateway\.example\.com''',
+    '''^https?://.*api\.example\.com''',
+    '''^https?://.*agent\.example\.com''',
     '''ak-demo''',
     '''sess-123''',
     '''DEMO-2026''',
@@ -43,7 +43,6 @@ regexes = [
     '''secret-123''',
     '''ghcr\.io/\{owner\}''',
     '''github\.com/your-org''',
-    '''security@your-org\.com''',
 ]
 
 # 已知 commit 豁免（如有历史泄露已撤销）— 初始为空，扫描后视情况追加

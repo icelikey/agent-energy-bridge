@@ -10,7 +10,11 @@ const { GenericOpenAIGatewayAdapter } = require('./adapters/generic-openai-adapt
 const { MemoryAdapter } = require('./adapters/memory-adapter');
 const { NewAPIGatewayAdapter, NEWAPI_DEFAULT_PATHS } = require('./adapters/new-api-adapter');
 const { AutoRefuelDecorator } = require('./adapters/auto-refuel-decorator');
+const { FailoverAdapter } = require('./adapters/failover-adapter');
+const { MultiProviderRouter, DEFAULT_ROUTER_OPTIONS } = require('./core/multi-provider-router');
 const { RefuelOrchestrator } = require('./service/refuel-orchestrator');
+const { NotificationService } = require('./service/notification-service');
+const { TokenMeter, WINDOW_DAYS } = require('./core/token-meter');
 const { OpsEngine } = require('./core/ops-engine');
 const { RouteHealthChecker } = require('./core/route-health-checker');
 const { createServer, startServer, buildContext } = require('./server');
@@ -33,7 +37,13 @@ module.exports = {
   NewAPIGatewayAdapter,
   NEWAPI_DEFAULT_PATHS,
   AutoRefuelDecorator,
+  FailoverAdapter,
+  MultiProviderRouter,
+  DEFAULT_ROUTER_OPTIONS,
   RefuelOrchestrator,
+  NotificationService,
+  TokenMeter,
+  WINDOW_DAYS,
   OpsEngine,
   SessionStore,
   createServer,
