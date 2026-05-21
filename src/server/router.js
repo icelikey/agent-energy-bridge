@@ -15,6 +15,7 @@ const { postMeterRecord, getMeterStats, getMeterReport, getMeterBreakdown } = re
 const { getRoutingStatus, getRoutingLog, postRoutingForce } = require('./handlers/routing');
 const { getNotifyConfig, postNotifyTest } = require('./handlers/notify');
 const { getRefuelStatus } = require('./handlers/refuel-status');
+const { getDashboard } = require('./handlers/dashboard');
 
 const ROUTES = [
   { method: 'GET',  path: '/agent/v1/health',            handler: getHealth },
@@ -46,6 +47,8 @@ const ROUTES = [
   { method: 'GET',  path: '/agent/v1/notify/config',      handler: getNotifyConfig },
   { method: 'POST', path: '/agent/v1/notify/test',        handler: postNotifyTest },
   { method: 'GET',  path: '/agent/v1/refuel/status',      handler: getRefuelStatus },
+  // Dashboard (Phase 7 extension)
+  { method: 'GET',  path: '/dashboard',                    handler: getDashboard },
 ];
 
 function parseQuery(url) {
